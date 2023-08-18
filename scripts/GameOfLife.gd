@@ -124,20 +124,30 @@ func update_cells():
 
 func hash_grid(_cells: Array[bool] = cells) -> String:
 	var _hash = 0
-	
-	_hash += grid_size.x
-	_hash += grid_size.y << 8
 
-	# encode x cells into a single character (a-Z 0-9)
+	# encode grid size into first 2 bytes
+	_hash |= grid_size.x
+	_hash <<= 8
+	_hash |= grid_size.y
+	_hash <<= 8
+	
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
 			if get_cell(x, y, _cells):
 				_hash |= 1 << (x + y * grid_size.x)
 
 	var _hash_str = ""
-	for i in range(4):
-		_hash_str = String.chr(_hash & 0xFF) + _hash_str
-		_hash >>= 8
+	# pick largest alphanumeric character and subtract from hash
+	while _hash > 0:
+		var _char = _hash % 62
+		if _char < 10:
+			_char += 48
+		elif _char < 36:
+			_char += 55
+		else:
+			_char += 61
+		_hash_str += String.chr(_char)
+		_hash /= 62
 
 	return _hash_str
 
