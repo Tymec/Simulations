@@ -1,0 +1,113 @@
+[gd_scene load_steps=4 format=3 uid="uid://di74g5xfuv5jj"]
+
+[ext_resource type="Script" path="res://scripts/MainMenu.gd" id="1_4fkre"]
+[ext_resource type="PackedScene" uid="uid://byjl6cp7gowxx" path="res://scenes/GameOfLife.tscn" id="2_filg4"]
+[ext_resource type="PackedScene" uid="uid://b3m4ni3qff5kg" path="res://components/GlobalManager.tscn" id="3_tcdvd"]
+
+[node name="MainMenu" type="MarginContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 120
+theme_override_constants/margin_top = 80
+theme_override_constants/margin_right = 120
+theme_override_constants/margin_bottom = 80
+script = ExtResource("1_4fkre")
+simulations = Array[PackedScene]([ExtResource("2_filg4")])
+
+[node name="GlobalManager" parent="." instance=ExtResource("3_tcdvd")]
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="MainButtons" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RichTextLabel" type="RichTextLabel" parent="HBoxContainer/MainButtons"]
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 56
+bbcode_enabled = true
+text = "[center]Simulations[/center]"
+fit_content = true
+scroll_active = false
+
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/MainButtons"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_right = 36
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/MainButtons/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="StartButton" type="Button" parent="HBoxContainer/MainButtons/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Start"
+language = "en"
+
+[node name="SettingsButton" type="Button" parent="HBoxContainer/MainButtons/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Settings"
+
+[node name="QuitButton" type="Button" parent="HBoxContainer/MainButtons/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Quit
+"
+language = "en"
+
+[node name="RichTextLabel2" type="RichTextLabel" parent="HBoxContainer/MainButtons"]
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 20
+text = "@Tymec"
+fit_content = true
+scroll_active = false
+
+[node name="SimulationSelect" type="VBoxContainer" parent="HBoxContainer"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/SimulationSelect"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_right = 36
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/SimulationSelect/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="BackButton" type="Button" parent="HBoxContainer/SimulationSelect/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Back"
+language = "en"
+
+[node name="RichTextLabel2" type="RichTextLabel" parent="HBoxContainer/SimulationSelect"]
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 20
+text = "@Tymec"
+fit_content = true
+scroll_active = false
+
+[node name="CenterContainer" type="CenterContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="HBoxContainer/CenterContainer"]
+layout_mode = 2
+text = "BOOM"
+
+[connection signal="pressed" from="HBoxContainer/MainButtons/MarginContainer/VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="HBoxContainer/MainButtons/MarginContainer/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
+[connection signal="pressed" from="HBoxContainer/MainButtons/MarginContainer/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]
+[connection signal="pressed" from="HBoxContainer/SimulationSelect/MarginContainer/VBoxContainer/BackButton" to="." method="_on_back_button_pressed"]
