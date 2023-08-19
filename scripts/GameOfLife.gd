@@ -32,12 +32,9 @@ extends Node2D
 		queue_redraw()
 @export_group("", "")
 
-@onready var camera = $Camera2D
-@onready var hash_input = $HashInput
-
 var is_running = false
 var elapsed_time = 0.0
-var generation = KEY_0
+var generation = 0
 var cells: Array[bool] = []
 var rects: Array[Rect2] = []
 
@@ -123,31 +120,33 @@ func update_cells():
 	return _cells
 
 func hash_grid(_cells: Array[bool] = cells) -> String:
-	var _hash = 0
+	# XX-YYYY-YYYY-...-YYYY (XX = grid size, Y = cell cluster state)
+	var _hash_str = ""
 
 	# encode grid size into first 2 bytes
-	_hash |= grid_size.x
-	_hash <<= 8
-	_hash |= grid_size.y
-	_hash <<= 8
-	
+	var _grid_size = grid_size.x | (grid_size.y << 8)
+	_hash_str += String.chr(_grid_size & 0xFF)
+	_hash_str += String.chr((_grid_size >> 8) & 0xFF)
+
+	_hash_str += "-"
+
+	var _hash = 0
+	var _bit = 0
 	for y in range(grid_size.y):
 		for x in range(grid_size.x):
-			if get_cell(x, y, _cells):
-				_hash |= 1 << (x + y * grid_size.x)
+			if _bit == 4:
+				_hash_str += String.chr(_hash & 0xFF)
+				_hash = 0
+				_bit = 0
 
-	var _hash_str = ""
-	# pick largest alphanumeric character and subtract from hash
-	while _hash > 0:
-		var _char = _hash % 62
-		if _char < 10:
-			_char += 48
-		elif _char < 36:
-			_char += 55
-		else:
-			_char += 61
-		_hash_str += String.chr(_char)
-		_hash /= 62
+			_hash <<= 1
+			if get_cell(x, y, _cells):
+				_hash |= 1
+			_bit += 1
+
+	if _bit > 0:
+		_hash <<= 4 - _bit
+		_hash_str += String.chr(_hash & 0xFF)
 
 	return _hash_str
 
@@ -173,11 +172,11 @@ func recover_grid(_hash_str: String) -> Array[bool]:
 
 ## Convert global position to grid coordinates
 func to_coords(pos: Vector2) -> Vector2i:
-	var global_size = get_global_grid_size()
-	if pos.x < 0 or pos.y < 0:
+	var dims = get_dimensions()
+	if pos.x < dims.x or pos.y < dims.y or pos.x >= dims.z or pos.y >= dims.w:
 		return Vector2i(-1, -1)
-	elif pos.x >= global_size.x or pos.y >= global_size.y:
-		return Vector2i(-1, -1)
+	
+	pos += get_grid_center()
 
 	var col = floor(pos.x / (cell_size + cell_spacing))
 	var row = floor(pos.y / (cell_size + cell_spacing))
@@ -196,9 +195,13 @@ func generate() -> Array[Rect2]:
 	
 	for row in range(grid_size.y):
 		for col in range(grid_size.x):
-			var pos = Vector2(col, row)
+			var rect_pos = Vector2(col, row) * (cell_size + cell_spacing)
+
+			# Center the grid
+			rect_pos -= get_grid_center()
+
 			var rect = Rect2(
-				pos * (cell_size + cell_spacing), 
+				rect_pos,
 				Vector2(cell_size, cell_size)
 			)
 			rs.append(rect)
@@ -210,26 +213,25 @@ func get_grid_center() -> Vector2:
 	return grid_size * (cell_size + cell_spacing) / 2
 
 ## Get grid size in pixels
-func get_global_grid_size() -> Vector2:
-	return grid_size * (cell_size + cell_spacing)
+func get_dimensions() -> Vector4i:
+	var first_cell = rects[0]
+	var last_cell = rects[rects.size() - 1]
+
+	var top_left = first_cell.position - first_cell.size / 2
+	var bottom_right = last_cell.position + last_cell.size / 2
+
+	return Vector4i(
+		top_left.x,
+		top_left.y,
+		bottom_right.x,
+		bottom_right.y
+	)
 
 func _ready():
 	# Initialize the grid
 	rects = generate()
 	cells.resize(rects.size())
 	cells.fill(false)
-
-	# Place the camera in the center of the grid
-	camera.set_offset(get_grid_center())
-
-	# Print information about the grid and the viewport
-	var grid_max_size = get_global_grid_size()
-	var viewport_size = get_viewport().size as Vector2
-	print("Grid size: ", grid_max_size)
-	print("Viewport size: ", viewport_size)
-	var space_left = (viewport_size - grid_max_size) / viewport_size
-	print("Horizontal space left: %.0f" % (space_left.x * 100), "%")
-	print("Vertical space left: %.0f" % (space_left.y * 100), "%")
 
 func _draw():
 	for i in range(rects.size()):
@@ -242,10 +244,10 @@ func _input(event):
 	if event is InputEventKey:
 		if event.keycode == KEY_R and event.pressed:
 			reset_cells()
-			hash_input.text = str(hash_grid())
+			print("Hash: %s" % str(hash_grid()))
 		elif event.keycode == KEY_SPACE and event.pressed:
 			toggle_simulation()
-			hash_input.text = str(hash_grid())
+		print("Hash: %s" % str(hash_grid()))
 	elif event is InputEventMouseButton:
 		var mouse_pos = get_global_mouse_position()
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -253,14 +255,14 @@ func _input(event):
 			if cell == Vector2i(-1, -1):
 				return
 			set_cell(cell.x, cell.y, true)
-			hash_input.text = str(hash_grid()) # Update hash
+			print("Hash: %s" % str(hash_grid()))
 			queue_redraw()
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			var cell = to_coords(mouse_pos)
 			if cell == Vector2i(-1, -1):
 				return
 			set_cell(cell.x, cell.y, false)
-			hash_input.text = str(hash_grid()) # Update hash
+			print("Hash: %s" % str(hash_grid()))
 			queue_redraw()
 	elif event is InputEventMouseMotion:
 		if event.button_mask & (MOUSE_BUTTON_LEFT | MOUSE_BUTTON_RIGHT):
@@ -276,7 +278,7 @@ func _input(event):
 			var add_cell = event.button_mask & MOUSE_BUTTON_LEFT
 			for cell in Helper.bresenham(origin_cell, destination_cell):
 				set_cell(cell.x, cell.y, add_cell)
-			hash_input.text = str(hash_grid()) # Update hash
+			print("Hash: %s" % str(hash_grid()))
 			queue_redraw()
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -297,10 +299,3 @@ func _process(_delta):
 		elapsed_time = 0
 	else:
 		elapsed_time += _delta
-
-
-func _on_hash_string_text_changed(new_text):
-	var _hash = int(new_text)
-	var _cells = recover_grid(_hash)
-	cells = _cells
-	queue_redraw()

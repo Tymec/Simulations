@@ -7,19 +7,19 @@
 
 [node name="GlobalManager" parent="." instance=ExtResource("1_jqlig")]
 
+[node name="Camera2D" type="Camera2D" parent="."]
+
 [node name="Grid" type="Node2D" parent="."]
 script = ExtResource("1_r73mb")
 wrap_around = true
-grid_size = Vector2i(100, 56)
+grid_size = Vector2i(150, 100)
 cell_spacing = 2
 
-[node name="Camera2D" type="Camera2D" parent="Grid"]
-
-[node name="HashInput" type="LineEdit" parent="Grid"]
+[node name="HashInput" type="LineEdit" parent="."]
 offset_top = -33.0
 offset_right = 513.0
 offset_bottom = -2.0
 size_flags_horizontal = 3
 text = "hash string"
 
-[connection signal="text_changed" from="Grid/HashInput" to="Grid" method="_on_hash_string_text_changed"]
+[connection signal="text_changed" from="HashInput" to="Grid" method="_on_hash_string_text_changed"]
