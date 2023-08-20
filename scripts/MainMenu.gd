@@ -13,14 +13,11 @@ func _ready():
 
 	var parent = simulation_select.get_node("MarginContainer/VBoxContainer")
 	for simulation in simulations:
-		var instance = simulation.instantiate()
-
-		if not instance is Simulation:
-			continue
+		#var instance = simulation.instantiate()
 
 		var button = Button.new()
-		button.text = instance.simulation_name
-		button.disabled = not instance.simulation_enabled
+		#button.text = instance.simulation_name
+		#button.disabled = not instance.simulation_enabled
 		button.connect("pressed", func():
 			get_tree().change_scene_to_packed(simulation)
 		)

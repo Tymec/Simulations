@@ -3,7 +3,7 @@ extends Node2D
 func _bresenhamLow(origin: Vector2i, destination: Vector2i) -> Array[Vector2i]:
 	var dx = destination.x - origin.x
 	var dy = destination.y - origin.y
-	
+
 	var yi = 1
 	if dy < 0:
 		yi = -1
@@ -47,6 +47,7 @@ func _bresenhamHigh(origin: Vector2i, destination: Vector2i) -> Array[Vector2i]:
 
 	return points
 
+## Returns an array of points between origin and destination using Bresenham's line algorithm
 func bresenham(origin: Vector2i, destination: Vector2i) -> Array[Vector2i]:
 	if abs(destination.y - origin.y) < abs(destination.x - origin.x):
 		if origin.x > destination.x:

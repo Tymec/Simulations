@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://byjl6cp7gowxx"]
+[gd_scene load_steps=4 format=3 uid="uid://byjl6cp7gowxx"]
 
 [ext_resource type="PackedScene" uid="uid://b3m4ni3qff5kg" path="res://components/GlobalManager.tscn" id="1_jqlig"]
 [ext_resource type="Script" path="res://scripts/GameOfLife.gd" id="1_r73mb"]
+[ext_resource type="PackedScene" uid="uid://cjfvjxxtif0c4" path="res://components/ValueDisplay.tscn" id="3_2rogq"]
 
 [node name="GameOfLife" type="Node"]
 
@@ -11,15 +12,335 @@
 
 [node name="Grid" type="Node2D" parent="."]
 script = ExtResource("1_r73mb")
-wrap_around = true
-grid_size = Vector2i(150, 100)
-cell_spacing = 2
+cell_style = null
 
-[node name="HashInput" type="LineEdit" parent="."]
-offset_top = -33.0
-offset_right = 513.0
-offset_bottom = -2.0
+[node name="Timer" type="Timer" parent="Grid"]
+wait_time = 0.1
+
+[node name="GUI" type="Control" parent="."]
+layout_mode = 3
+anchor_left = -0.5
+anchor_top = -0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="GUI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 size_flags_horizontal = 3
-text = "hash string"
+size_flags_vertical = 3
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 16
 
-[connection signal="text_changed" from="HashInput" to="Grid" method="_on_hash_string_text_changed"]
+[node name="HBoxContainer" type="HBoxContainer" parent="GUI/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="GUI/MarginContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="StatusDisplay" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer" instance=ExtResource("3_2rogq")]
+layout_mode = 2
+label = "Status"
+default_value = "stopped"
+
+[node name="GenerationDisplay" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer" instance=ExtResource("3_2rogq")]
+layout_mode = 2
+label = "Generation"
+default_value = "0"
+
+[node name="BirthsDisplay" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer" instance=ExtResource("3_2rogq")]
+layout_mode = 2
+label = "Births"
+default_value = "0"
+
+[node name="DeathsDisplay" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer" instance=ExtResource("3_2rogq")]
+layout_mode = 2
+label = "Deaths"
+default_value = "0"
+
+[node name="HashDisplay" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer" instance=ExtResource("3_2rogq")]
+layout_mode = 2
+label = "Hash"
+default_value = "-"
+
+[node name="CenterContainer" type="CenterContainer" parent="GUI/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="GUI/MarginContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="ControlsLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+text = "Controls"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+text = "Play"
+
+[node name="PauseButton" type="Button" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Pause"
+
+[node name="ResetButton" type="Button" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+text = "Reset"
+
+[node name="ClearButton" type="Button" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+text = "Clear"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+alignment = 1
+
+[node name="SaveButton" type="Button" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Load"
+
+[node name="HSeparator" type="HSeparator" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="SettingsLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Grid size"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3"]
+layout_mode = 2
+
+[node name="GridSizeXSpinBox" type="SpinBox" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer"]
+layout_mode = 2
+min_value = 1.0
+value = 32.0
+allow_greater = true
+alignment = 2
+update_on_text_changed = true
+prefix = "X"
+
+[node name="GridSizeYSpinBox" type="SpinBox" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer"]
+layout_mode = 2
+min_value = 1.0
+value = 32.0
+allow_greater = true
+alignment = 2
+update_on_text_changed = true
+prefix = "Y"
+
+[node name="HBoxContainer4" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="CellSizeLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer4"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cell size"
+
+[node name="CellSizeSpinBox" type="SpinBox" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer4"]
+layout_mode = 2
+min_value = 1.0
+value = 16.0
+allow_greater = true
+alignment = 2
+update_on_text_changed = true
+
+[node name="HBoxContainer5" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="SpacingLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer5"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Spacing"
+
+[node name="SpacingSpinBox" type="SpinBox" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer5"]
+layout_mode = 2
+min_value = 1.0
+value = 4.0
+allow_greater = true
+alignment = 2
+update_on_text_changed = true
+
+[node name="HBoxContainer13" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="CellStyleLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer13"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cell style"
+
+[node name="CellStyleOptionButton" type="OptionButton" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer13"]
+layout_mode = 2
+item_count = 6
+selected = 0
+popup/item_0/text = "⬛"
+popup/item_0/id = 0
+popup/item_1/text = "⬜"
+popup/item_1/id = 1
+popup/item_2/text = "⚪"
+popup/item_2/id = 2
+popup/item_3/text = "⭕"
+popup/item_3/id = 3
+popup/item_4/text = "◆"
+popup/item_4/id = 4
+popup/item_5/text = "◇"
+popup/item_5/id = 5
+
+[node name="HBoxContainer6" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="EdgeBehaviourLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer6"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Edge"
+
+[node name="EdgeBehaviourOptionButton" type="OptionButton" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer6"]
+layout_mode = 2
+item_count = 3
+selected = 2
+popup/item_0/text = "Alive"
+popup/item_0/id = 0
+popup/item_1/text = "Dead"
+popup/item_1/id = 1
+popup/item_2/text = "Wrap"
+popup/item_2/id = 2
+
+[node name="HBoxContainer9" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="RandomizeLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer9"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Randomize"
+
+[node name="RandomizeCheckButton" type="CheckButton" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer9"]
+layout_mode = 2
+size_flags_horizontal = 3
+button_pressed = true
+
+[node name="HBoxContainer11" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="TrailLengthLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer11"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Trail length"
+
+[node name="TrailLengthSpinBox" type="SpinBox" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer11"]
+layout_mode = 2
+allow_greater = true
+
+[node name="HBoxContainer12" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="SpeedLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer12"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Speed"
+
+[node name="SpeedHSlider" type="HSlider" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer12"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.1
+max_value = 1.0
+step = 0.1
+value = 0.1
+
+[node name="HSeparator2" type="HSeparator" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ColorsLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+text = "Colors"
+horizontal_alignment = 1
+
+[node name="HBoxContainer7" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="DeadColorLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer7"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Dead"
+
+[node name="DeadColorPickerButton" type="ColorPickerButton" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer7"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HBoxContainer8" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="AliveColorLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer8"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Alive"
+
+[node name="AliveColorPickerButton" type="ColorPickerButton" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer8"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(1, 1, 1, 1)
+
+[node name="HBoxContainer10" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="TrailColorLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer10"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Trail"
+
+[node name="TrailColorPickerButton" type="ColorPickerButton" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer10"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0.2, 0.7, 0.8, 1)
+
+[connection signal="births_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/BirthsDisplay" method="_on_value_update"]
+[connection signal="deaths_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/DeathsDisplay" method="_on_value_update"]
+[connection signal="generation_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/GenerationDisplay" method="_on_value_update"]
+[connection signal="hash_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/HashDisplay" method="_on_value_update"]
+[connection signal="simulation_status" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/StatusDisplay" method="_on_value_update"]
+[connection signal="timeout" from="Grid/Timer" to="Grid" method="_on_timer_timeout"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PlayButton" to="Grid" method="_on_play_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PauseButton" to="Grid" method="_on_pause_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/ResetButton" to="Grid" method="_on_reset_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/ClearButton" to="Grid" method="_on_clear_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer2/SaveButton" to="Grid" method="_on_save_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer2/LoadButton" to="Grid" method="_on_load_button_pressed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer/GridSizeXSpinBox" to="Grid" method="_on_grid_size_x_value_changed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer/GridSizeYSpinBox" to="Grid" method="_on_grid_size_y_value_changed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer4/CellSizeSpinBox" to="Grid" method="_on_cell_size_value_changed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer5/SpacingSpinBox" to="Grid" method="_on_spacing_value_changed"]
+[connection signal="item_selected" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer13/CellStyleOptionButton" to="Grid" method="_on_cell_style_item_selected"]
+[connection signal="item_selected" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer6/EdgeBehaviourOptionButton" to="Grid" method="_on_edge_behaviour_item_selected"]
+[connection signal="toggled" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer9/RandomizeCheckButton" to="Grid" method="_on_randomize_toggled"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer11/TrailLengthSpinBox" to="Grid" method="_on_trail_length_value_changed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer12/SpeedHSlider" to="Grid" method="_on_speed_value_changed"]
+[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer7/DeadColorPickerButton" to="Grid" method="_on_dead_color_changed"]
+[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer8/AliveColorPickerButton" to="Grid" method="_on_alive_color_changed"]
+[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer10/TrailColorPickerButton" to="Grid" method="_on_trail_color_changed"]
