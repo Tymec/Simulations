@@ -3,9 +3,11 @@ extends Node2D
 
 
 enum CellState {ALIVE = 0, DEAD = 1, TRAIL = 2}
-enum EdgeBehaviour {ALIVE = 0, DEAD = 1, WRAP = 2}
+enum EdgeBehaviour {ALIVE = 0, DEAD = 1, WRAP = 2, KILL = 3}
 enum CellStyle {SQUARE = 0, SQUARE_OUTLINE = 1, CIRCLE = 2, CIRLCE_OUTLINE = 3, DIAMOND = 4, DIAMOND_OUTLINE = 5}
 
+
+@export var rle_input: TextEdit
 @export var cell_style: CellStyle = CellStyle.SQUARE:
 	set(val):
 		cell_style = val
@@ -18,8 +20,8 @@ enum CellStyle {SQUARE = 0, SQUARE_OUTLINE = 1, CIRCLE = 2, CIRLCE_OUTLINE = 3, 
 @export var grid_size: Vector2i = Vector2i(32, 32):
 	set(val):
 		grid_size = val
-		generate_grid()
-		queue_redraw()
+		generate_rects()
+		emit_signal("grid_size_changed", grid_size)
 @export_range(1, 0, 1, "or_greater") var grid_cell_size: int = 16:
 	set(val):
 		grid_cell_size = val
@@ -55,14 +57,21 @@ enum CellStyle {SQUARE = 0, SQUARE_OUTLINE = 1, CIRCLE = 2, CIRLCE_OUTLINE = 3, 
 	set(val):
 		grid_trail_cell_color = val
 		queue_redraw()
+@export_group("Rules", "rule_")
+@export var rule_births: Array[int] = [3]:
+	set(val):
+		rule_births = val
+@export var rule_survivals: Array[int] = [2, 3]:
+	set(val):
+		rule_survivals = val
 @export_group("", "")
 
 
 signal simulation_status(status: String)
 signal generation_changed(generation: int)
-signal hash_changed(hash: String)
 signal births_changed(births: int)
 signal deaths_changed(deaths: int)
+signal grid_size_changed(size: Vector2i)
 
 
 @onready var timer: Timer = $Timer
@@ -71,7 +80,6 @@ var current_grid: Array[int] = []
 var next_grid: Array[int] = []
 var original_grid: Array[int] = []
 
-var grid_hash: String = ""
 var generation: int = 0
 var births: int = 0
 var deaths: int = 0
@@ -100,6 +108,15 @@ func set_cell(x: int, y: int, value: int, cells: Array[int], force_nowrap: bool 
 			y = wrapi(y, 0, grid_size.y)
 		else:
 			return
+	elif x == 0 or x == grid_size.x - 1 or y == 0 or y == grid_size.y - 1:
+		if edge_behaviour == EdgeBehaviour.KILL and value == CellState.ALIVE and not force_nowrap:
+			value = CellState.DEAD
+			for i in range(-1, 2):
+				for j in range(-1, 2):
+					if i == 0 and j == 0:
+						continue
+
+					set_cell(x + i, y + j, CellState.DEAD, cells, true)
 
 	# Set the cell at the given coordinates to the given value
 	cells[x + y * grid_size.x] = value
@@ -140,7 +157,7 @@ func update_grid() -> bool:
 			var new_state = cell
 			if cell == CellState.ALIVE:
 				new_state = CellState.DEAD + grid_trail_length
-				if neighbours == 2 or neighbours == 3:
+				if neighbours in rule_survivals:
 					new_state = CellState.ALIVE
 					births += 1
 					emit_signal("births_changed", births)
@@ -148,7 +165,7 @@ func update_grid() -> bool:
 					deaths += 1
 					emit_signal("deaths_changed", deaths)
 			else:
-				if neighbours == 3:
+				if neighbours in rule_births:
 					new_state = CellState.ALIVE
 				elif new_state != CellState.DEAD:
 					new_state -= 1
@@ -246,6 +263,144 @@ func reset_counters():
 	emit_signal("births_changed", births)
 	deaths = 0
 	emit_signal("deaths_changed", deaths)
+
+## Parse RLE string
+func parse_rle(contents: String) -> Dictionary:
+	var grid: Array[int] = current_grid.duplicate()
+	grid.fill(CellState.DEAD)
+	var new_grid_size: Vector2i = grid_size
+	var new_rule_births: Array[int] = rule_births.duplicate()
+	var new_rule_survivals: Array[int] = rule_survivals.duplicate()
+
+	var x = 0
+	var y = 0
+	var offset = 0
+	var run_count = ""
+
+	# Parse the file
+	var lines = contents.split("\n")
+	for line in lines:
+		line = line.strip_edges()
+
+		# Skip comments
+		if line.begins_with("#"):
+			continue
+
+		# Parse header
+		if line.begins_with("x"):
+			# Parse the line
+			var tokens = line.split(",")
+			var map = {}
+			for token in tokens:
+				token = token.strip_edges()
+
+				# Check if the token is empty
+				if token == "":
+					continue
+
+				var parts = token.split("=")
+				if parts.size() != 2:
+					continue
+
+				var key = parts[0].strip_edges()
+				var value = parts[1].strip_edges()
+
+				if key == "" or value == "":
+					continue
+
+				map[key] = value
+
+			# Get the grid size
+			if "x" in map and "y" in map:
+				var pattern_size = Vector2i(map["x"].to_int(), map["y"].to_int())
+				if pattern_size.x > grid_size.x or pattern_size.y > grid_size.y:
+					# Resize to 2x the pattern size
+					var sz = max(pattern_size.x, pattern_size.y)
+					new_grid_size = Vector2i(sz, sz) * 2
+					grid.resize(new_grid_size.x * new_grid_size.y)
+					grid.fill(CellState.DEAD)
+
+				# try to center the pattern
+				offset = (new_grid_size - pattern_size) / 2
+				x = offset.x
+				y = offset.y
+			else:
+				print_debug("Invalid RLE file: missing grid size")
+				return {"success": false}
+
+			# Get the rule string
+			if "rule" in map:
+				var rule = map["rule"]
+				if rule.begins_with("B") and rule.contains("/") and rule.contains("S"):
+					var parts = rule.split("/")
+					var birth = parts[0].strip_edges()
+					var survival = parts[1].strip_edges()
+
+					if birth.begins_with("B") and survival.begins_with("S"):
+						birth = birth.split("").slice(1)
+						survival = survival.split("S").slice(1)
+
+						new_rule_births.clear()
+						new_rule_survivals.clear()
+
+						for i in birth:
+							new_rule_births.append(i.to_int())
+						for i in survival:
+							new_rule_survivals.append(i.to_int())
+					else:
+						print_debug("Invalid RLE file: invalid rule string")
+						return {"success": false}
+				else:
+					print_debug("Invalid RLE file: invalid or unsupported rule string")
+					return {"success": false}
+
+			continue
+
+		# Parse the line
+		var tokens = line.split("")
+		for token in tokens:
+			token = token.strip_edges()
+
+			# Check if the token is empty
+			if token == "":
+				continue
+
+			# Check if the token is a number
+			if token.is_valid_int():
+				run_count += token
+				continue
+
+			# Check if the token is a letter or symbol
+			var letter = token.to_lower()
+			var count = 1
+			if run_count != "":
+				count = run_count.to_int()
+				run_count = ""
+
+			if letter == "b":
+				for i in range(count):
+					grid[x + y * new_grid_size.x] = CellState.DEAD
+					x += 1
+			elif letter == "o":
+				for i in range(count):
+					grid[x + y * new_grid_size.x] = CellState.ALIVE
+					x += 1
+			elif letter == "$":
+				x = offset.x
+				y += 1
+			elif letter == "!":
+				return {
+					"success": true,
+					"grid": grid,
+					"size": new_grid_size,
+					"rule": {
+						"births": rule_births,
+						"survivals": rule_survivals
+					}
+				}
+
+	print_debug("Invalid RLE file: missing end of file marker")
+	return {"success": false}
 
 func _ready():
 	generate_grid()
@@ -417,6 +572,10 @@ func _on_grid_size_x_value_changed(value):
 		# Resize grid
 		grid_size.x = value
 
+		# Regenerate grid
+		generate_grid()
+		queue_redraw()
+
 func _on_grid_size_y_value_changed(value):
 	if value != grid_size.y:
 		# Stop simulation
@@ -431,6 +590,10 @@ func _on_grid_size_y_value_changed(value):
 
 		# Resize grid
 		grid_size.y = value
+
+		# Regenerate grid
+		generate_grid()
+		queue_redraw()
 
 func _on_cell_size_value_changed(value):
 	if value != grid_cell_size:
@@ -469,3 +632,41 @@ func _on_speed_value_changed(value):
 
 func _on_cell_style_item_selected(index):
 	cell_style = index
+
+func _on_rle_input_child_entered_tree(node):
+	rle_input = node
+
+func _on_rle_input_text_changed():
+	if not rle_input:
+		return
+
+	# Stop simulation
+	timer.stop()
+	timer.paused = false
+
+	# Clear original grid if it's not empty
+	original_grid.clear()
+
+	# Reset counters
+	reset_counters()
+
+	# Parse RLE input
+	var rle = rle_input.text
+	var result = parse_rle(rle)
+
+	if result["success"]:
+		print("RLE input parsed successfully.")
+
+		current_grid.clear()
+		next_grid.clear()
+
+		current_grid = result["grid"]
+		next_grid = current_grid.duplicate()
+
+		grid_size = result["size"]
+		emit_signal("grid_size_changed", grid_size)
+		rule_births = result["rule"]["births"]
+		rule_survivals = result["rule"]["survivals"]
+
+		generate_rects()
+		queue_redraw()

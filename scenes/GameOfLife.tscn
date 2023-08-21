@@ -10,9 +10,9 @@
 
 [node name="Camera2D" type="Camera2D" parent="."]
 
-[node name="Grid" type="Node2D" parent="."]
+[node name="Grid" type="Node2D" parent="." node_paths=PackedStringArray("rle_input")]
 script = ExtResource("1_r73mb")
-cell_style = null
+rle_input = NodePath("../GUI/MarginContainer/HBoxContainer/VBoxContainer/RLEInput")
 
 [node name="Timer" type="Timer" parent="Grid"]
 wait_time = 0.1
@@ -46,6 +46,8 @@ size_flags_vertical = 0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="GUI/MarginContainer/HBoxContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
 
 [node name="StatusDisplay" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer" instance=ExtResource("3_2rogq")]
 layout_mode = 2
@@ -67,10 +69,12 @@ layout_mode = 2
 label = "Deaths"
 default_value = "0"
 
-[node name="HashDisplay" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer" instance=ExtResource("3_2rogq")]
+[node name="RLEInput" type="TextEdit" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer"]
 layout_mode = 2
-label = "Hash"
-default_value = "-"
+size_flags_vertical = 3
+text = "#C This is a glider.
+x = 3, y = 3
+bo$2bo$3o!"
 
 [node name="CenterContainer" type="CenterContainer" parent="GUI/MarginContainer/HBoxContainer"]
 layout_mode = 2
@@ -223,7 +227,7 @@ text = "Edge"
 
 [node name="EdgeBehaviourOptionButton" type="OptionButton" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer6"]
 layout_mode = 2
-item_count = 3
+item_count = 4
 selected = 2
 popup/item_0/text = "Alive"
 popup/item_0/id = 0
@@ -231,6 +235,8 @@ popup/item_1/text = "Dead"
 popup/item_1/id = 1
 popup/item_2/text = "Wrap"
 popup/item_2/id = 2
+popup/item_3/text = "Kill"
+popup/item_3/id = 3
 
 [node name="HBoxContainer9" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
 layout_mode = 2
@@ -323,9 +329,9 @@ color = Color(0.2, 0.7, 0.8, 1)
 [connection signal="births_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/BirthsDisplay" method="_on_value_update"]
 [connection signal="deaths_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/DeathsDisplay" method="_on_value_update"]
 [connection signal="generation_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/GenerationDisplay" method="_on_value_update"]
-[connection signal="hash_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/HashDisplay" method="_on_value_update"]
 [connection signal="simulation_status" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/StatusDisplay" method="_on_value_update"]
 [connection signal="timeout" from="Grid/Timer" to="Grid" method="_on_timer_timeout"]
+[connection signal="text_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer/RLEInput" to="Grid" method="_on_rle_input_text_changed"]
 [connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PlayButton" to="Grid" method="_on_play_button_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PauseButton" to="Grid" method="_on_pause_button_pressed"]
 [connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/ResetButton" to="Grid" method="_on_reset_button_pressed"]
