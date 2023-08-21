@@ -330,15 +330,15 @@ func parse_rle(contents: String) -> Dictionary:
 
 			# Get the rule string
 			if "rule" in map:
-				var rule = map["rule"]
-				if rule.begins_with("B") and rule.contains("/") and rule.contains("S"):
+				var rule = map["rule"].to_lower()
+				if rule.begins_with("b") and rule.contains("/") and rule.contains("s"):
 					var parts = rule.split("/")
 					var birth = parts[0].strip_edges()
 					var survival = parts[1].strip_edges()
 
-					if birth.begins_with("B") and survival.begins_with("S"):
+					if birth.begins_with("b") and survival.begins_with("s"):
 						birth = birth.split("").slice(1)
-						survival = survival.split("S").slice(1)
+						survival = survival.split("").slice(1)
 
 						new_rule_births.clear()
 						new_rule_survivals.clear()
