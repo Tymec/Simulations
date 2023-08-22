@@ -174,6 +174,10 @@ func fetch_buffer(buffer_name: String) -> PackedByteArray:
 		# Check if buffer is already registered
 		print("Buffer with name '%s' not registered" % buffer_name)
 		return PackedByteArray()
+	elif has_submitted:
+		# Need to synchronize before fetching buffer
+		print("Compute list has been submitted, need to synchronize before fetching buffer")
+		return PackedByteArray()
 
 	# Fetch buffer
 	var buffer = buffers[buffer_name]

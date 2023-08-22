@@ -154,6 +154,7 @@ func reset_counters() -> void:
 	emit_signal("births_changed", 0)
 	emit_signal("deaths_changed", 0)
 
+## Perform a single simulation step
 func simulation_step() -> void:
 	# Check if the compute shader is available
 	if not compute.is_available():
@@ -165,7 +166,7 @@ func simulation_step() -> void:
 
 	# Run the compute shader
 	compute.execute(grid_size.x, grid_size.y, 1)
-	compute.wait() # TODO: Run asynchronously
+	compute.wait() # TODO: Run in parallel
 
 	# Retrieve the results and update the grid
 	var new_grid = compute.fetch_buffer("next_grid").to_int32_array()
@@ -188,6 +189,7 @@ func simulation_step() -> void:
 	emit_signal("births_changed", new_counters[Counter.BIRTHS])
 	emit_signal("deaths_changed", new_counters[Counter.DEATHS])
 
+	# Queue a redraw
 	queue_redraw()
 
 func _ready() -> void:
