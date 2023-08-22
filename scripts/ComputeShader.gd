@@ -11,6 +11,9 @@ var uniform_set: RID
 var cache: Dictionary
 
 
+### TODO: Add support for samplers
+
+
 func _ready() -> void:
 	rd = null
 	shader = RID()
@@ -132,7 +135,7 @@ func register_texture(
 	width: float, height: float,
 	data: PackedByteArray = [],
 	format: int = RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM,
-	usage_bits: int = RenderingDevice.TEXTURE_USAGE_STORAGE_BIT + RenderingDevice.TEXTURE_USAGE_CAN_UPDATE_BIT
+	usage_bits: int = RenderingDevice.TEXTURE_USAGE_STORAGE_BIT + RenderingDevice.TEXTURE_USAGE_CAN_UPDATE_BIT,
 ) -> bool:
 	if not _precheck(texture_name, false):
 		return false
