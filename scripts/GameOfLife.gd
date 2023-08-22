@@ -28,8 +28,10 @@ signal survivals_changed(survivals: int)
 		# Reset counters
 		reset_counters()
 
-		compute.reregister_buffer("grid", grid.to_byte_array())
-		compute.reregister_buffer("next_grid", next_grid.to_byte_array())
+		compute.unregister_uniform("grid")
+		compute.register_buffer("grid", 0, 0, grid.to_byte_array())
+		compute.unregister_uniform("next_grid")
+		compute.register_buffer("next_grid", 1, 0, next_grid.to_byte_array())
 
 		queue_redraw()
 @export_range(1, 0, 1, "or_greater") var grid_cell_size: int = 16:
@@ -205,10 +207,11 @@ func _ready() -> void:
 	counters = PackedInt32Array([0, 0, 0, 0])
 
 	# Setup the compute shader
-	compute.register_buffer("grid", grid.to_byte_array(), 0)
-	compute.register_buffer("next_grid", next_grid.to_byte_array(), 1)
-	compute.register_buffer("settings", settings.to_byte_array(), 2)
-	compute.register_buffer("counters", counters.to_byte_array(), 3)
+	compute.register_buffer("grid", 0, 0, grid.to_byte_array())
+	compute.register_buffer("next_grid", 1, 0, next_grid.to_byte_array())
+	compute.register_buffer("settings", 2, 0, settings.to_byte_array())
+	var status = compute.register_buffer("counters", 3, 0, counters.to_byte_array())
+	print("Status: ", status)
 
 func _draw() -> void:
 	for i in range(rects.size()):
