@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://rreg2q7leebe"]
+
+[ext_resource type="Script" path="res://scripts/ComputeShader.gd" id="1_jkuge"]
+
+[node name="ComputeShader" type="Node"]
+script = ExtResource("1_jkuge")
+shader_file = "res://shaders/GameOfLifeCompute.glsl"

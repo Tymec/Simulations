@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://byjl6cp7gowxx"]
+[gd_scene load_steps=5 format=3 uid="uid://byjl6cp7gowxx"]
 
 [ext_resource type="PackedScene" uid="uid://b3m4ni3qff5kg" path="res://components/GlobalManager.tscn" id="1_jqlig"]
-[ext_resource type="Script" path="res://scripts/GameOfLife.gd" id="1_r73mb"]
+[ext_resource type="Script" path="res://scripts/Life.gd" id="2_d8yo4"]
 [ext_resource type="PackedScene" uid="uid://cjfvjxxtif0c4" path="res://components/ValueDisplay.tscn" id="3_2rogq"]
+[ext_resource type="PackedScene" uid="uid://rreg2q7leebe" path="res://components/ComputeShader.tscn" id="3_xephq"]
 
 [node name="GameOfLife" type="Node"]
 
@@ -10,12 +11,14 @@
 
 [node name="Camera2D" type="Camera2D" parent="."]
 
-[node name="Grid" type="Node2D" parent="." node_paths=PackedStringArray("rle_input")]
-script = ExtResource("1_r73mb")
-rle_input = NodePath("../GUI/MarginContainer/HBoxContainer/VBoxContainer/RLEInput")
+[node name="Life" type="Node2D" parent="."]
+script = ExtResource("2_d8yo4")
 
-[node name="Timer" type="Timer" parent="Grid"]
+[node name="Timer" type="Timer" parent="Life"]
+process_callback = 0
 wait_time = 0.1
+
+[node name="ComputeShader" parent="Life" instance=ExtResource("3_xephq")]
 
 [node name="GUI" type="Control" parent="."]
 layout_mode = 3
@@ -69,6 +72,11 @@ layout_mode = 2
 label = "Deaths"
 default_value = "0"
 
+[node name="SurvivalsDisplay" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer" instance=ExtResource("3_2rogq")]
+layout_mode = 2
+label = "Survivals"
+default_value = "0"
+
 [node name="RLEInput" type="TextEdit" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -109,6 +117,7 @@ layout_mode = 2
 text = "Clear"
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+visible = false
 layout_mode = 2
 alignment = 1
 
@@ -193,6 +202,7 @@ alignment = 2
 update_on_text_changed = true
 
 [node name="HBoxContainer13" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+visible = false
 layout_mode = 2
 
 [node name="CellStyleLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer13"]
@@ -227,18 +237,17 @@ text = "Edge"
 
 [node name="EdgeBehaviourOptionButton" type="OptionButton" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer6"]
 layout_mode = 2
-item_count = 4
-selected = 2
-popup/item_0/text = "Alive"
+item_count = 3
+selected = 0
+popup/item_0/text = "Wrap"
 popup/item_0/id = 0
 popup/item_1/text = "Dead"
 popup/item_1/id = 1
-popup/item_2/text = "Wrap"
+popup/item_2/text = "Kill"
 popup/item_2/id = 2
-popup/item_3/text = "Kill"
-popup/item_3/id = 3
 
 [node name="HBoxContainer9" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+visible = false
 layout_mode = 2
 
 [node name="RandomizeLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer9"]
@@ -252,6 +261,7 @@ size_flags_horizontal = 3
 button_pressed = true
 
 [node name="HBoxContainer11" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+visible = false
 layout_mode = 2
 
 [node name="TrailLengthLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer11"]
@@ -274,10 +284,9 @@ text = "Speed"
 [node name="SpeedHSlider" type="HSlider" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer12"]
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 0.1
-max_value = 1.0
+max_value = 5.0
 step = 0.1
-value = 0.1
+value = 1.0
 
 [node name="HSeparator2" type="HSeparator" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
 layout_mode = 2
@@ -299,6 +308,7 @@ text = "Dead"
 [node name="DeadColorPickerButton" type="ColorPickerButton" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer7"]
 layout_mode = 2
 size_flags_horizontal = 3
+color = Color(1, 1, 1, 1)
 
 [node name="HBoxContainer8" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
 layout_mode = 2
@@ -311,9 +321,9 @@ text = "Alive"
 [node name="AliveColorPickerButton" type="ColorPickerButton" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer8"]
 layout_mode = 2
 size_flags_horizontal = 3
-color = Color(1, 1, 1, 1)
 
 [node name="HBoxContainer10" type="HBoxContainer" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2"]
+visible = false
 layout_mode = 2
 
 [node name="TrailColorLabel" type="Label" parent="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer10"]
@@ -326,27 +336,21 @@ layout_mode = 2
 size_flags_horizontal = 3
 color = Color(0.2, 0.7, 0.8, 1)
 
-[connection signal="births_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/BirthsDisplay" method="_on_value_update"]
-[connection signal="deaths_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/DeathsDisplay" method="_on_value_update"]
-[connection signal="generation_changed" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/GenerationDisplay" method="_on_value_update"]
-[connection signal="simulation_status" from="Grid" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/StatusDisplay" method="_on_value_update"]
-[connection signal="timeout" from="Grid/Timer" to="Grid" method="_on_timer_timeout"]
-[connection signal="text_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer/RLEInput" to="Grid" method="_on_rle_input_text_changed"]
-[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PlayButton" to="Grid" method="_on_play_button_pressed"]
-[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PauseButton" to="Grid" method="_on_pause_button_pressed"]
-[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/ResetButton" to="Grid" method="_on_reset_button_pressed"]
-[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/ClearButton" to="Grid" method="_on_clear_button_pressed"]
-[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer2/SaveButton" to="Grid" method="_on_save_button_pressed"]
-[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer2/LoadButton" to="Grid" method="_on_load_button_pressed"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer/GridSizeXSpinBox" to="Grid" method="_on_grid_size_x_value_changed"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer/GridSizeYSpinBox" to="Grid" method="_on_grid_size_y_value_changed"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer4/CellSizeSpinBox" to="Grid" method="_on_cell_size_value_changed"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer5/SpacingSpinBox" to="Grid" method="_on_spacing_value_changed"]
-[connection signal="item_selected" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer13/CellStyleOptionButton" to="Grid" method="_on_cell_style_item_selected"]
-[connection signal="item_selected" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer6/EdgeBehaviourOptionButton" to="Grid" method="_on_edge_behaviour_item_selected"]
-[connection signal="toggled" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer9/RandomizeCheckButton" to="Grid" method="_on_randomize_toggled"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer11/TrailLengthSpinBox" to="Grid" method="_on_trail_length_value_changed"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer12/SpeedHSlider" to="Grid" method="_on_speed_value_changed"]
-[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer7/DeadColorPickerButton" to="Grid" method="_on_dead_color_changed"]
-[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer8/AliveColorPickerButton" to="Grid" method="_on_alive_color_changed"]
-[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer10/TrailColorPickerButton" to="Grid" method="_on_trail_color_changed"]
+[connection signal="births_changed" from="Life" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/BirthsDisplay" method="_on_value_update"]
+[connection signal="deaths_changed" from="Life" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/DeathsDisplay" method="_on_value_update"]
+[connection signal="generation_changed" from="Life" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/GenerationDisplay" method="_on_value_update"]
+[connection signal="simulation_status" from="Life" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/StatusDisplay" method="_on_value_update"]
+[connection signal="survivals_changed" from="Life" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/SurvivalsDisplay" method="_on_value_update"]
+[connection signal="timeout" from="Life/Timer" to="Life" method="_on_timer_timeout"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PlayButton" to="Life" method="_on_play_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PauseButton" to="Life" method="_on_pause_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/ResetButton" to="Life" method="_on_reset_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/ClearButton" to="Life" method="_on_clear_button_pressed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer/GridSizeXSpinBox" to="Life" method="_on_grid_size_x_changed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer/GridSizeYSpinBox" to="Life" method="_on_grid_size_y_changed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer4/CellSizeSpinBox" to="Life" method="_on_grid_cell_size_changed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer5/SpacingSpinBox" to="Life" method="_on_grid_spacing_changed"]
+[connection signal="item_selected" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer6/EdgeBehaviourOptionButton" to="Life" method="_on_edge_behaviour_selected"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer12/SpeedHSlider" to="Life" method="_on_speed_value_changed"]
+[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer7/DeadColorPickerButton" to="Life" method="_on_dead_color_changed"]
+[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer8/AliveColorPickerButton" to="Life" method="_on_alive_color_changed"]

@@ -1,4 +1,0 @@
-ants
-boids
-orbit
-slime
