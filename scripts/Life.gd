@@ -22,7 +22,7 @@ signal survivals_changed(survivals: int)
 
 		rects = generate_rects()
 		grid = generate_grid()
-		next_grid = generate_grid()
+		var next_grid = grid.duplicate()
 		original_grid.clear()
 
 		# Reset counters
@@ -75,7 +75,6 @@ signal survivals_changed(survivals: int)
 var rects: Array[Rect2]
 var grid: PackedInt32Array
 var original_grid: PackedInt32Array
-var next_grid: PackedInt32Array
 var settings: PackedInt32Array
 var counters: PackedInt32Array
 
@@ -155,10 +154,46 @@ func reset_counters() -> void:
 	emit_signal("births_changed", 0)
 	emit_signal("deaths_changed", 0)
 
+func simulation_step() -> void:
+	# Check if the compute shader is available
+	if not compute.is_available():
+		return
+
+	# Update buffers
+	compute.update_buffer("grid", grid.to_byte_array())
+	compute.update_buffer("counters", counters.to_byte_array())
+
+	# Run the compute shader
+	compute.execute(grid_size.x, grid_size.y, 1)
+	compute.wait() # TODO: Run asynchronously
+
+	# Retrieve the results and update the grid
+	var new_grid = compute.fetch_buffer("next_grid").to_int32_array()
+	grid = new_grid
+
+	# Update counters
+	var new_counters = compute.fetch_buffer("counters").to_int32_array()
+
+	# If nothing has changed, pause the simulation
+	if new_counters[Counter.BIRTHS] == counters[Counter.BIRTHS] and new_counters[Counter.DEATHS] == counters[Counter.DEATHS]:
+		timer.paused = true
+		emit_signal("simulation_status", "paused")
+		return
+
+	# Update the counters
+	new_counters[Counter.GENERATION] = counters[Counter.GENERATION] + 1
+	counters = new_counters
+	emit_signal("generation_changed", new_counters[Counter.GENERATION])
+	emit_signal("survivals_changed", new_counters[Counter.SURVIVALS])
+	emit_signal("births_changed", new_counters[Counter.BIRTHS])
+	emit_signal("deaths_changed", new_counters[Counter.DEATHS])
+
+	queue_redraw()
+
 func _ready() -> void:
 	# Setup the grid
 	grid = generate_grid(randomize_on_start)
-	next_grid = generate_grid()
+	var next_grid = grid.duplicate()
 	original_grid = []
 	rects = generate_rects()
 	queue_redraw()
@@ -205,40 +240,7 @@ func _input(event) -> void:
 				queue_redraw()
 
 func _on_timer_timeout() -> void:
-	# Check if the compute shader is available
-	if not compute.is_available():
-		return
-
-	# Update buffers
-	compute.update_buffer("grid", grid.to_byte_array())
-	compute.update_buffer("counters", counters.to_byte_array())
-
-	# Run the compute shader
-	compute.execute(grid_size.x, grid_size.y, 1)
-	compute.wait()
-
-	# Retrieve the results and update the grid
-	var new_grid = compute.fetch_buffer("next_grid").to_int32_array()
-	grid = new_grid
-
-	# Update counters
-	var new_counters = compute.fetch_buffer("counters").to_int32_array()
-
-	# If nothing has changed, pause the simulation
-	if new_counters[Counter.BIRTHS] == counters[Counter.BIRTHS] and new_counters[Counter.DEATHS] == counters[Counter.DEATHS]:
-		timer.paused = true
-		emit_signal("simulation_status", "paused")
-		return
-
-	# Update the counters
-	new_counters[Counter.GENERATION] = counters[Counter.GENERATION] + 1
-	counters = new_counters
-	emit_signal("generation_changed", new_counters[Counter.GENERATION])
-	emit_signal("survivals_changed", new_counters[Counter.SURVIVALS])
-	emit_signal("births_changed", new_counters[Counter.BIRTHS])
-	emit_signal("deaths_changed", new_counters[Counter.DEATHS])
-
-	queue_redraw()
+	call_deferred("simulation_step")
 
 func _on_play_button_pressed() -> void:
 	if timer.is_stopped():
@@ -294,7 +296,6 @@ func _on_clear_button_pressed() -> void:
 
 	# Clear the grid
 	grid.fill(0)
-	next_grid.fill(0)
 	queue_redraw()
 
 func _on_grid_size_x_changed(value: int) -> void:
