@@ -1,24 +1,25 @@
 [gd_scene load_steps=5 format=3 uid="uid://byjl6cp7gowxx"]
 
 [ext_resource type="PackedScene" uid="uid://b3m4ni3qff5kg" path="res://components/GlobalManager.tscn" id="1_jqlig"]
-[ext_resource type="Script" path="res://scripts/Life.gd" id="2_d8yo4"]
+[ext_resource type="Script" path="res://scripts/GameOfLife.gd" id="2_d8yo4"]
 [ext_resource type="PackedScene" uid="uid://cjfvjxxtif0c4" path="res://components/ValueDisplay.tscn" id="3_2rogq"]
 [ext_resource type="PackedScene" uid="uid://rreg2q7leebe" path="res://components/ComputeShader.tscn" id="3_xephq"]
 
-[node name="GameOfLife" type="Node"]
+[node name="Root" type="Node"]
 
 [node name="GlobalManager" parent="." instance=ExtResource("1_jqlig")]
 
 [node name="Camera2D" type="Camera2D" parent="."]
 
-[node name="Life" type="Node2D" parent="."]
+[node name="GameOfLife" type="Node2D" parent="."]
 script = ExtResource("2_d8yo4")
 
-[node name="Timer" type="Timer" parent="Life"]
+[node name="Timer" type="Timer" parent="GameOfLife"]
 process_callback = 0
 wait_time = 0.1
 
-[node name="ComputeShader" parent="Life" instance=ExtResource("3_xephq")]
+[node name="ComputeShader" parent="GameOfLife" instance=ExtResource("3_xephq")]
+shader_file = "res://shaders/GameOfLifeCompute.glsl"
 
 [node name="GUI" type="Control" parent="."]
 layout_mode = 3
@@ -336,21 +337,21 @@ layout_mode = 2
 size_flags_horizontal = 3
 color = Color(0.2, 0.7, 0.8, 1)
 
-[connection signal="births_changed" from="Life" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/BirthsDisplay" method="_on_value_update"]
-[connection signal="deaths_changed" from="Life" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/DeathsDisplay" method="_on_value_update"]
-[connection signal="generation_changed" from="Life" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/GenerationDisplay" method="_on_value_update"]
-[connection signal="simulation_status" from="Life" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/StatusDisplay" method="_on_value_update"]
-[connection signal="survivals_changed" from="Life" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/SurvivalsDisplay" method="_on_value_update"]
-[connection signal="timeout" from="Life/Timer" to="Life" method="_on_timer_timeout"]
-[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PlayButton" to="Life" method="_on_play_button_pressed"]
-[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PauseButton" to="Life" method="_on_pause_button_pressed"]
-[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/ResetButton" to="Life" method="_on_reset_button_pressed"]
-[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/ClearButton" to="Life" method="_on_clear_button_pressed"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer/GridSizeXSpinBox" to="Life" method="_on_grid_size_x_changed"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer/GridSizeYSpinBox" to="Life" method="_on_grid_size_y_changed"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer4/CellSizeSpinBox" to="Life" method="_on_grid_cell_size_changed"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer5/SpacingSpinBox" to="Life" method="_on_grid_spacing_changed"]
-[connection signal="item_selected" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer6/EdgeBehaviourOptionButton" to="Life" method="_on_edge_behaviour_selected"]
-[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer12/SpeedHSlider" to="Life" method="_on_speed_value_changed"]
-[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer7/DeadColorPickerButton" to="Life" method="_on_dead_color_changed"]
-[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer8/AliveColorPickerButton" to="Life" method="_on_alive_color_changed"]
+[connection signal="births_changed" from="GameOfLife" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/BirthsDisplay" method="_on_value_update"]
+[connection signal="deaths_changed" from="GameOfLife" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/DeathsDisplay" method="_on_value_update"]
+[connection signal="generation_changed" from="GameOfLife" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/GenerationDisplay" method="_on_value_update"]
+[connection signal="simulation_status" from="GameOfLife" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/StatusDisplay" method="_on_value_update"]
+[connection signal="survivals_changed" from="GameOfLife" to="GUI/MarginContainer/HBoxContainer/VBoxContainer/SurvivalsDisplay" method="_on_value_update"]
+[connection signal="timeout" from="GameOfLife/Timer" to="GameOfLife" method="_on_timer_timeout"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PlayButton" to="GameOfLife" method="_on_play_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/PauseButton" to="GameOfLife" method="_on_pause_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer/ResetButton" to="GameOfLife" method="_on_reset_button_pressed"]
+[connection signal="pressed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/ClearButton" to="GameOfLife" method="_on_clear_button_pressed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer/GridSizeXSpinBox" to="GameOfLife" method="_on_grid_size_x_changed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer3/VBoxContainer/GridSizeYSpinBox" to="GameOfLife" method="_on_grid_size_y_changed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer4/CellSizeSpinBox" to="GameOfLife" method="_on_grid_cell_size_changed"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer5/SpacingSpinBox" to="GameOfLife" method="_on_grid_spacing_changed"]
+[connection signal="item_selected" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer6/EdgeBehaviourOptionButton" to="GameOfLife" method="_on_edge_behaviour_selected"]
+[connection signal="value_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer12/SpeedHSlider" to="GameOfLife" method="_on_speed_value_changed"]
+[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer7/DeadColorPickerButton" to="GameOfLife" method="_on_dead_color_changed"]
+[connection signal="color_changed" from="GUI/MarginContainer/HBoxContainer/VBoxContainer2/HBoxContainer8/AliveColorPickerButton" to="GameOfLife" method="_on_alive_color_changed"]

@@ -1,243 +1,92 @@
-@tool
 extends Node2D
 
 
-enum CellState {ALIVE = 0, DEAD = 1, TRAIL = 2}
-enum EdgeBehaviour {ALIVE = 0, DEAD = 1, WRAP = 2, KILL = 3}
-enum CellStyle {SQUARE = 0, SQUARE_OUTLINE = 1, CIRCLE = 2, CIRLCE_OUTLINE = 3, DIAMOND = 4, DIAMOND_OUTLINE = 5}
-
-
-@export var rle_input: TextEdit
-@export var cell_style: CellStyle = CellStyle.SQUARE:
-	set(val):
-		cell_style = val
-		queue_redraw()
-@export var edge_behaviour: EdgeBehaviour = EdgeBehaviour.WRAP
-@export var randomize_on_start: bool = true:
-	set(val):
-		randomize_on_start = val
-@export_group("Grid", "grid_")
-@export var grid_size: Vector2i = Vector2i(32, 32):
-	set(val):
-		grid_size = val
-		generate_rects()
-		emit_signal("grid_size_changed", grid_size)
-@export_range(1, 0, 1, "or_greater") var grid_cell_size: int = 16:
-	set(val):
-		grid_cell_size = val
-		if Engine.is_editor_hint() and rects.size() == 0:
-			generate_grid()
-			queue_redraw()
-			return
-
-		generate_rects()
-		queue_redraw()
-@export_range(1, 0, 1, "or_greater") var grid_spacing: int = 4:
-	set(val):
-		grid_spacing = val
-		if Engine.is_editor_hint() and rects.size() == 0:
-			generate_grid()
-			queue_redraw()
-			return
-
-		generate_rects()
-		queue_redraw()
-@export_range(0, 0, 1, "or_greater") var grid_trail_length: int = 0:
-	set(val):
-		grid_trail_length = val
-@export var grid_alive_cell_color: Color = Color(0, 0, 0, 1):
-	set(val):
-		grid_alive_cell_color = val
-		queue_redraw()
-@export var grid_dead_cell_color: Color = Color(1, 1, 1, 1):
-	set(val):
-		grid_dead_cell_color = val
-		queue_redraw()
-@export var grid_trail_cell_color: Color = Color(.2, .7, .8, 1):
-	set(val):
-		grid_trail_cell_color = val
-		queue_redraw()
-@export_group("Rules", "rule_")
-@export var rule_births: Array[int] = [3]:
-	set(val):
-		rule_births = val
-@export var rule_survivals: Array[int] = [2, 3]:
-	set(val):
-		rule_survivals = val
-@export_group("", "")
+#const INVOCATIONS = 1
+enum EdgeBehaviour {WRAP = 0, DEAD = 1, KILL = 2}
+enum Counter {GENERATION = 0, SURVIVALS = 1, BIRTHS = 2, DEATHS = 3}
 
 
 signal simulation_status(status: String)
 signal generation_changed(generation: int)
 signal births_changed(births: int)
 signal deaths_changed(deaths: int)
-signal grid_size_changed(size: Vector2i)
+signal survivals_changed(survivals: int)
 
+@export var randomize_on_start: bool = false:
+	set(val):
+		randomize_on_start = val
+@export_group("Grid", "grid_")
+@export var grid_size: Vector2i = Vector2i(32, 32):
+	set(val):
+		grid_size = val
+
+		rects = generate_rects()
+		grid = generate_grid()
+		var next_grid = grid.duplicate()
+		original_grid.clear()
+
+		# Reset counters
+		reset_counters()
+
+		compute.reregister_buffer("grid", grid.to_byte_array())
+		compute.reregister_buffer("next_grid", next_grid.to_byte_array())
+
+		queue_redraw()
+@export_range(1, 0, 1, "or_greater") var grid_cell_size: int = 16:
+	set(val):
+		grid_cell_size = val
+		rects = generate_rects()
+		queue_redraw()
+@export_range(1, 0, 1, "or_greater") var grid_spacing: int = 4:
+	set(val):
+		grid_spacing = val
+		rects = generate_rects()
+		queue_redraw()
+@export_group("Colors", "colors_")
+@export var colors_alive: Color = Color(0, 0, 0, 1):
+	set(val):
+		colors_alive = val
+		queue_redraw()
+@export var colors_dead: Color = Color(1, 1, 1, 1):
+	set(val):
+		colors_dead = val
+		queue_redraw()
+@export_group("Behavior", "behavior_")
+@export var behavior_edge: EdgeBehaviour = EdgeBehaviour.WRAP:
+	set(val):
+		behavior_edge = val
+		settings[0] = val
+		compute.update_buffer("settings", settings.to_byte_array())
+@export_flags("0", "1", "2", "3", "4", "5", "6", "7", "8") var behavior_rule_births = 8:
+	set(val):
+		behavior_rule_births = val
+		settings[1] = val
+		compute.update_buffer("settings", settings.to_byte_array())
+@export_flags("0", "1", "2", "3", "4", "5", "6", "7", "8") var behavior_rule_survivals = 12:
+	set(val):
+		behavior_rule_survivals = val
+		settings[2] = val
+		compute.update_buffer("settings", settings.to_byte_array())
+@export_group("", "")
 
 @onready var timer: Timer = $Timer
-var rects: Array[Rect2] = []
-var current_grid: Array[int] = []
-var next_grid: Array[int] = []
-var original_grid: Array[int] = []
+@onready var compute: ComputeShader = $ComputeShader
 
-var generation: int = 0
-var births: int = 0
-var deaths: int = 0
+var rects: Array[Rect2]
+var grid: PackedInt32Array
+var original_grid: PackedInt32Array
+var settings: PackedInt32Array
+var counters: PackedInt32Array
 
-## Get the cell at the given coordinates
-func get_cell(x: int, y: int, cells: Array[int]) -> int:
-	# Check if the cell is out of bounds and handle it accordingly based on the edge behaviour
-	if x < 0 or x >= grid_size.x or y < 0 or y >= grid_size.y:
-		if edge_behaviour == EdgeBehaviour.WRAP:
-			x = wrapi(x, 0, grid_size.x)
-			y = wrapi(y, 0, grid_size.y)
-		else:
-			return edge_behaviour
-
-	# Return the cell at the given coordinates
-	return cells[x + y * grid_size.x]
 
 ## Set the cell at the given coordinates to the given value
-func set_cell(x: int, y: int, value: int, cells: Array[int], force_nowrap: bool = false):
+func set_cell(x: int, y: int, value: int) -> void:
 	# Check if the cell is out of bounds and handle it accordingly based on the edge behaviour
 	if x < 0 or x >= grid_size.x or y < 0 or y >= grid_size.y:
-		if force_nowrap:
-			return
-		elif edge_behaviour == EdgeBehaviour.WRAP:
-			x = wrapi(x, 0, grid_size.x)
-			y = wrapi(y, 0, grid_size.y)
-		else:
-			return
-	elif x == 0 or x == grid_size.x - 1 or y == 0 or y == grid_size.y - 1:
-		if edge_behaviour == EdgeBehaviour.KILL and value == CellState.ALIVE and not force_nowrap:
-			value = CellState.DEAD
-			for i in range(-1, 2):
-				for j in range(-1, 2):
-					if i == 0 and j == 0:
-						continue
-
-					set_cell(x + i, y + j, CellState.DEAD, cells, true)
+		return
 
 	# Set the cell at the given coordinates to the given value
-	cells[x + y * grid_size.x] = value
-
-## Get number of active cells around the given cell
-func get_neighbours(x: int, y: int, cells: Array[int]) -> int:
-	var count = 0
-
-	# Check all cells around the given cell
-	for i in range(-1, 2):
-		for j in range(-1, 2):
-			# Skip the cell itself
-			if i == 0 and j == 0:
-				continue
-
-			# Check if the cell is alive
-			if get_cell(x + i, y + j, cells) == CellState.ALIVE:
-				count += 1
-
-			# Optimization: if the count is already 4, we can stop checking
-			if count > 3:
-				return count
-
-	return count
-
-## Updates the cells in the grid
-func update_grid() -> bool:
-	var has_changed = false
-
-	# Update all cells in the grid
-	for y in range(grid_size.y):
-		for x in range(grid_size.x):
-			# Get the cell and its neighbours
-			var cell = get_cell(x, y, current_grid)
-			var neighbours = get_neighbours(x, y, current_grid)
-
-			# Check if the cell should live or die based on the number of neighbours
-			var new_state = cell
-			if cell == CellState.ALIVE:
-				new_state = CellState.DEAD + grid_trail_length
-				if neighbours in rule_survivals:
-					new_state = CellState.ALIVE
-					births += 1
-					emit_signal("births_changed", births)
-				else:
-					deaths += 1
-					emit_signal("deaths_changed", deaths)
-			else:
-				if neighbours in rule_births:
-					new_state = CellState.ALIVE
-				elif new_state != CellState.DEAD:
-					new_state -= 1
-
-			# Update the cell
-			if cell != new_state:
-				has_changed = true
-			set_cell(x, y, new_state, next_grid)
-
-	return has_changed
-
-## Generates a cell shape at the given coordinates
-func generate_shape(x: int, y: int):
-	return Rect2(
-		Vector2(x, y) * (grid_cell_size + grid_spacing) - get_grid_center(),
-		Vector2(grid_cell_size, grid_cell_size)
-	)
-
-## Generate rects for cells in the grid
-func generate_rects():
-	# Clear the rects
-	rects.clear()
-
-	# Resize the rects
-	rects.resize(grid_size.x * grid_size.y)
-
-	# Generate rects for all cells in the grid
-	for y in range(grid_size.y):
-		for x in range(grid_size.x):
-			rects[x + y * grid_size.x] = generate_shape(x, y)
-
-## Generate a grid of cells
-func generate_grid():
-	# Clear the grid
-	rects.clear()
-	current_grid.clear()
-	next_grid.clear()
-
-	# Resize the grid
-	rects.resize(grid_size.x * grid_size.y)
-	current_grid.resize(grid_size.x * grid_size.y)
-	next_grid.resize(grid_size.x * grid_size.y)
-
-	# Generate the grid
-	for y in range(grid_size.y):
-		for x in range(grid_size.x):
-			var index = x + y * grid_size.x
-
-			# Create the rect for the cell and add it to the grid
-			rects[index] = generate_shape(x, y)
-
-			# Initialize the cell to dead
-			var initial_value = CellState.DEAD
-			if randomize_on_start:
-				initial_value =  CellState.DEAD if randi() % 2 == 0 else CellState.ALIVE
-			current_grid[index] = initial_value
-			next_grid[index] = initial_value
-
-## Convert global coordinates to grid coordinates
-func to_coords(pos: Vector2) -> Vector2i:
-	# Check if the position is out of bounds
-	var dims = get_dimensions()
-	if pos.x < dims.x or pos.y < dims.y or pos.x >= dims.z or pos.y >= dims.w:
-		return Vector2i(-1, -1)
-
-	# Offset the position by the center of the grid
-	pos += get_grid_center()
-
-	# Convert the position to grid coordinates
-	var col = floor(pos.x / (grid_cell_size + grid_spacing))
-	var row = floor(pos.y / (grid_cell_size + grid_spacing))
-	return Vector2i(col, row)
+	grid[x + y * grid_size.x] = value
 
 ## Get center of grid (in local coordinates)
 func get_grid_center() -> Vector2:
@@ -255,196 +104,117 @@ func get_dimensions() -> Vector4i:
 		bottom_right.y
 	)
 
-## Reset counter values
-func reset_counters():
-	generation = 0
-	emit_signal("generation_changed", generation)
-	births = 0
-	emit_signal("births_changed", births)
-	deaths = 0
-	emit_signal("deaths_changed", deaths)
+## Generate the rects for the grid
+func generate_rects() -> Array[Rect2]:
+	var _rects: Array[Rect2] = []
 
-## Parse RLE string
-func parse_rle(contents: String) -> Dictionary:
-	var grid: Array[int] = current_grid.duplicate()
-	grid.fill(CellState.DEAD)
-	var new_grid_size: Vector2i = grid_size
-	var new_rule_births: Array[int] = rule_births.duplicate()
-	var new_rule_survivals: Array[int] = rule_survivals.duplicate()
+	_rects.resize(grid_size.x * grid_size.y)
+	for y in range(grid_size.y):
+		for x in range(grid_size.x):
+			_rects[y * grid_size.x + x] = Rect2(
+				Vector2(x, y) * (grid_cell_size + grid_spacing) - get_grid_center(),
+				Vector2(grid_cell_size, grid_cell_size)
+			)
 
-	var x = 0
-	var y = 0
-	var offset = 0
-	var run_count = ""
+	return _rects
 
-	# Parse the file
-	var lines = contents.split("\n")
-	for line in lines:
-		line = line.strip_edges()
+## Generate grid cell data
+func generate_grid(rng: bool = false) -> PackedInt32Array:
+	var _grid = PackedInt32Array()
+	_grid.resize(grid_size.x * grid_size.y)
+	if rng:
+		for i in range(_grid.size()):
+			_grid[i] = randi() % 2
+	else:
+		_grid.fill(0)
+	return _grid
 
-		# Skip comments
-		if line.begins_with("#"):
-			continue
+## Convert global coordinates to grid coordinates
+func to_coords(pos: Vector2) -> Vector2i:
+	# Check if the position is out of bounds
+	var dims = get_dimensions()
+	if pos.x < dims.x or pos.y < dims.y or pos.x >= dims.z or pos.y >= dims.w:
+		return Vector2i(-1, -1)
 
-		# Parse header
-		if line.begins_with("x"):
-			# Parse the line
-			var tokens = line.split(",")
-			var map = {}
-			for token in tokens:
-				token = token.strip_edges()
+	# Offset the position by the center of the grid
+	pos += get_grid_center()
 
-				# Check if the token is empty
-				if token == "":
-					continue
+	# Convert the position to grid coordinates
+	var col = floor(pos.x / (grid_cell_size + grid_spacing))
+	var row = floor(pos.y / (grid_cell_size + grid_spacing))
+	return Vector2i(col, row)
 
-				var parts = token.split("=")
-				if parts.size() != 2:
-					continue
+## Reset the counters
+func reset_counters() -> void:
+	counters = PackedInt32Array([0, 0, 0, 0])
+	compute.update_buffer("counters", counters.to_byte_array())
 
-				var key = parts[0].strip_edges()
-				var value = parts[1].strip_edges()
+	emit_signal("generation_changed", 0)
+	emit_signal("survivals_changed", 0)
+	emit_signal("births_changed", 0)
+	emit_signal("deaths_changed", 0)
 
-				if key == "" or value == "":
-					continue
+## Perform a single simulation step
+func simulation_step() -> void:
+	# Check if the compute shader is available
+	if not compute.is_available():
+		return
 
-				map[key] = value
+	# Update buffers
+	compute.update_buffer("grid", grid.to_byte_array())
+	compute.update_buffer("counters", counters.to_byte_array())
 
-			# Get the grid size
-			if "x" in map and "y" in map:
-				var pattern_size = Vector2i(map["x"].to_int(), map["y"].to_int())
-				if pattern_size.x > grid_size.x or pattern_size.y > grid_size.y:
-					# Resize to 2x the pattern size
-					var sz = max(pattern_size.x, pattern_size.y)
-					new_grid_size = Vector2i(sz, sz) * 2
-					grid.resize(new_grid_size.x * new_grid_size.y)
-					grid.fill(CellState.DEAD)
+	# Run the compute shader
+	compute.execute(grid_size.x, grid_size.y, 1)
+	compute.wait() # TODO: Run in parallel
 
-				# try to center the pattern
-				offset = (new_grid_size - pattern_size) / 2
-				x = offset.x
-				y = offset.y
-			else:
-				print_debug("Invalid RLE file: missing grid size")
-				return {"success": false}
+	# Retrieve the results and update the grid
+	var new_grid = compute.fetch_buffer("next_grid").to_int32_array()
+	grid = new_grid
 
-			# Get the rule string
-			if "rule" in map:
-				var rule = map["rule"].to_lower()
-				if rule.begins_with("b") and rule.contains("/") and rule.contains("s"):
-					var parts = rule.split("/")
-					var birth = parts[0].strip_edges()
-					var survival = parts[1].strip_edges()
+	# Update counters
+	var new_counters = compute.fetch_buffer("counters").to_int32_array()
 
-					if birth.begins_with("b") and survival.begins_with("s"):
-						birth = birth.split("").slice(1)
-						survival = survival.split("").slice(1)
+	# If nothing has changed, pause the simulation
+	if new_counters[Counter.BIRTHS] == counters[Counter.BIRTHS] and new_counters[Counter.DEATHS] == counters[Counter.DEATHS]:
+		timer.paused = true
+		emit_signal("simulation_status", "paused")
+		return
 
-						new_rule_births.clear()
-						new_rule_survivals.clear()
+	# Update the counters
+	new_counters[Counter.GENERATION] = counters[Counter.GENERATION] + 1
+	counters = new_counters
+	emit_signal("generation_changed", new_counters[Counter.GENERATION])
+	emit_signal("survivals_changed", new_counters[Counter.SURVIVALS])
+	emit_signal("births_changed", new_counters[Counter.BIRTHS])
+	emit_signal("deaths_changed", new_counters[Counter.DEATHS])
 
-						for i in birth:
-							new_rule_births.append(i.to_int())
-						for i in survival:
-							new_rule_survivals.append(i.to_int())
-					else:
-						print_debug("Invalid RLE file: invalid rule string")
-						return {"success": false}
-				else:
-					print_debug("Invalid RLE file: invalid or unsupported rule string")
-					return {"success": false}
+	# Queue a redraw
+	queue_redraw()
 
-			continue
+func _ready() -> void:
+	# Setup the grid
+	grid = generate_grid(randomize_on_start)
+	var next_grid = grid.duplicate()
+	original_grid = []
+	rects = generate_rects()
+	queue_redraw()
 
-		# Parse the line
-		var tokens = line.split("")
-		for token in tokens:
-			token = token.strip_edges()
+	# Setup arrays
+	settings = PackedInt32Array([behavior_edge, behavior_rule_births, behavior_rule_survivals])
+	counters = PackedInt32Array([0, 0, 0, 0])
 
-			# Check if the token is empty
-			if token == "":
-				continue
+	# Setup the compute shader
+	compute.register_buffer("grid", grid.to_byte_array(), 0)
+	compute.register_buffer("next_grid", next_grid.to_byte_array(), 1)
+	compute.register_buffer("settings", settings.to_byte_array(), 2)
+	compute.register_buffer("counters", counters.to_byte_array(), 3)
 
-			# Check if the token is a number
-			if token.is_valid_int():
-				run_count += token
-				continue
-
-			# Check if the token is a letter or symbol
-			var letter = token.to_lower()
-			var count = 1
-			if run_count != "":
-				count = run_count.to_int()
-				run_count = ""
-
-			if letter == "b":
-				for i in range(count):
-					grid[x + y * new_grid_size.x] = CellState.DEAD
-					x += 1
-			elif letter == "o":
-				for i in range(count):
-					grid[x + y * new_grid_size.x] = CellState.ALIVE
-					x += 1
-			elif letter == "$":
-				x = offset.x
-				y += 1
-			elif letter == "!":
-				return {
-					"success": true,
-					"grid": grid,
-					"size": new_grid_size,
-					"rule": {
-						"births": rule_births,
-						"survivals": rule_survivals
-					}
-				}
-
-	print_debug("Invalid RLE file: missing end of file marker")
-	return {"success": false}
-
-func _ready():
-	generate_grid()
-
-func _draw():
+func _draw() -> void:
 	for i in range(rects.size()):
-		var color = grid_dead_cell_color
-		if current_grid[i] == CellState.ALIVE:
-			color = grid_alive_cell_color
-		elif current_grid[i] > CellState.DEAD and grid_trail_length > 0:
-			color = grid_dead_cell_color.lerp(grid_trail_cell_color, current_grid[i] / float(grid_trail_length))
+		draw_rect(rects[i], colors_alive if grid[i] == 1 else colors_dead)
 
-		if cell_style == CellStyle.CIRCLE:
-			draw_circle(rects[i].position + rects[i].size / 2.0, grid_cell_size / 2.0, color)
-		elif cell_style == CellStyle.CIRLCE_OUTLINE:
-			draw_arc(rects[i].position + rects[i].size / 2.0, grid_cell_size / 2.0, 0, TAU, 32, color, 1)
-		elif cell_style == CellStyle.SQUARE_OUTLINE:
-			draw_polyline([
-				rects[i].position,
-				rects[i].position + Vector2(rects[i].size.x, 0),
-				rects[i].position + rects[i].size,
-				rects[i].position + Vector2(0, rects[i].size.y),
-				rects[i].position,
-			], color, 1)
-		elif cell_style == CellStyle.DIAMOND:
-			draw_colored_polygon([
-				rects[i].position + Vector2(rects[i].size.x / 2, 0),
-				rects[i].position + Vector2(rects[i].size.x, rects[i].size.y / 2),
-				rects[i].position + Vector2(rects[i].size.x / 2, rects[i].size.y),
-				rects[i].position + Vector2(0, rects[i].size.y / 2),
-				rects[i].position + Vector2(rects[i].size.x / 2, 0),
-			], color)
-		elif cell_style == CellStyle.DIAMOND_OUTLINE:
-			draw_polyline([
-				rects[i].position + Vector2(rects[i].size.x / 2, 0),
-				rects[i].position + Vector2(rects[i].size.x, rects[i].size.y / 2),
-				rects[i].position + Vector2(rects[i].size.x / 2, rects[i].size.y),
-				rects[i].position + Vector2(0, rects[i].size.y / 2),
-				rects[i].position + Vector2(rects[i].size.x / 2, 0),
-			], color, 1, false)
-		else:
-			draw_rect(rects[i], color)
-
-func _input(event):
+func _input(event) -> void:
 	if event is InputEventMouseButton:
 		if not timer.is_stopped() and not timer.paused:
 			return
@@ -453,8 +223,8 @@ func _input(event):
 			# Place/remove a single cell at the mouse position
 			var pt = to_coords(get_global_mouse_position())
 			if pt != Vector2i(-1, -1):
-				var new_state = CellState.ALIVE if event.button_mask & MOUSE_BUTTON_LEFT else CellState.DEAD
-				set_cell(pt.x, pt.y, new_state, current_grid, true)
+				var new_state = 1 if event.button_mask & MOUSE_BUTTON_LEFT else 0
+				set_cell(pt.x, pt.y, new_state)
 				queue_redraw()
 	elif event is InputEventMouseMotion:
 		if not timer.is_stopped() and not timer.paused:
@@ -466,32 +236,18 @@ func _input(event):
 			var destination = to_coords(get_global_mouse_position())
 
 			if origin != Vector2i(-1, -1) and destination != Vector2i(-1, -1):
-				var new_state = CellState.ALIVE if event.button_mask & MOUSE_BUTTON_LEFT else CellState.DEAD
+				var new_state = 1 if event.button_mask & MOUSE_BUTTON_LEFT else 0
 				for pt in Helper.bresenham(origin, destination):
-					set_cell(pt.x, pt.y, new_state, current_grid, true)
+					set_cell(pt.x, pt.y, new_state)
 				queue_redraw()
 
-func _on_timer_timeout():
-	# Perform simulation step and stop if nothing changed
-	if not update_grid():
-		timer.paused = true
-		emit_signal("simulation_status", "finished")
-		return
+func _on_timer_timeout() -> void:
+	call_deferred("simulation_step")
 
-	# Update generation counter
-	generation += 1
-	emit_signal("generation_changed", generation)
-
-	# Swap grids and redraw
-	var tmp = current_grid
-	current_grid = next_grid
-	next_grid = tmp
-	queue_redraw()
-
-func _on_play_button_pressed():
+func _on_play_button_pressed() -> void:
 	if timer.is_stopped():
-		# Save current grid state
-		original_grid = current_grid.duplicate()
+		# Save the current grid state
+		original_grid = grid.duplicate()
 
 		# Reset counters
 		reset_counters()
@@ -505,13 +261,13 @@ func _on_play_button_pressed():
 		timer.paused = false
 		emit_signal("simulation_status", "running")
 
-func _on_pause_button_pressed():
+func _on_pause_button_pressed() -> void:
 	if not timer.is_stopped():
 		# Pause simulation
 		timer.paused = true
 		emit_signal("simulation_status", "paused")
 
-func _on_reset_button_pressed():
+func _on_reset_button_pressed() -> void:
 	if not timer.is_stopped():
 		# Stop simulation
 		timer.stop()
@@ -522,151 +278,66 @@ func _on_reset_button_pressed():
 		reset_counters()
 
 		# Reset grid to original state
-		current_grid = original_grid.duplicate()
+		grid = original_grid.duplicate()
 		original_grid.clear()
 		queue_redraw()
 	elif timer.is_stopped() and original_grid.is_empty():
 		# Randomize grid
-		for y in range(grid_size.y):
-			for x in range(grid_size.x):
-				set_cell(x, y, randi() % 2, current_grid, true)
+		grid = generate_grid(true)
 		queue_redraw()
 
-func _on_clear_button_pressed():
+func _on_clear_button_pressed() -> void:
 	if not timer.is_stopped():
 		# Stop simulation
 		timer.stop()
 		timer.paused = false
 		emit_signal("simulation_status", "stopped")
 
-	# Clear grid if it's not empty
-	if original_grid.size() > 0:
-		original_grid.clear()
-
 	# Reset counters
 	reset_counters()
 
-	# Clear grid
-	current_grid.fill(CellState.DEAD)
-	next_grid.fill(CellState.DEAD)
+	# Clear the grid
+	grid.fill(0)
 	queue_redraw()
 
-func _on_save_button_pressed():
-	pass # Replace with function body.
-
-func _on_load_button_pressed():
-	pass # Replace with function body.
-
-func _on_grid_size_x_value_changed(value):
+func _on_grid_size_x_changed(value: int) -> void:
 	if value != grid_size.x:
 		# Stop simulation
 		timer.stop()
 		timer.paused = false
-
-		# Clear original grid if it's not empty
-		original_grid.clear()
-
-		# Reset counters
-		reset_counters()
+		emit_signal("simulation_status", "stopped")
 
 		# Resize grid
 		grid_size.x = value
 
-		# Regenerate grid
-		generate_grid()
-		queue_redraw()
-
-func _on_grid_size_y_value_changed(value):
+func _on_grid_size_y_changed(value: int) -> void:
 	if value != grid_size.y:
 		# Stop simulation
 		timer.stop()
 		timer.paused = false
-
-		# Clear original grid if it's not empty
-		original_grid.clear()
-
-		# Reset counters
-		reset_counters()
+		emit_signal("simulation_status", "stopped")
 
 		# Resize grid
 		grid_size.y = value
 
-		# Regenerate grid
-		generate_grid()
-		queue_redraw()
-
-func _on_cell_size_value_changed(value):
+func _on_grid_cell_size_changed(value: int) -> void:
 	if value != grid_cell_size:
 		grid_cell_size = value
 
-func _on_spacing_value_changed(value):
+func _on_grid_spacing_changed(value: int) -> void:
 	if value != grid_spacing:
 		grid_spacing = value
 
-func _on_edge_behaviour_item_selected(index):
-	if not timer.is_stopped() and not timer.paused:
-		timer.paused = true
-	edge_behaviour = index
+func _on_edge_behaviour_selected(index: int) -> void:
+	if index != behavior_edge:
+		behavior_edge = index as EdgeBehaviour
 
-func _on_dead_color_changed(color):
-	grid_dead_cell_color = color
+func _on_speed_value_changed(value: float) -> void:
+	if value != timer.wait_time:
+		Engine.time_scale = value
 
-func _on_alive_color_changed(color):
-	grid_alive_cell_color = color
+func _on_dead_color_changed(color: Color) -> void:
+	colors_dead = color
 
-func _on_randomize_toggled(button_pressed):
-	randomize_on_start = button_pressed
-
-func _on_trail_color_changed(color):
-	grid_trail_cell_color = color
-
-func _on_trail_length_value_changed(value):
-	if value != grid_trail_length:
-		grid_trail_length = value
-
-func _on_speed_value_changed(value):
-	if not timer.is_stopped() and not timer.paused:
-		timer.paused = true
-	timer.wait_time = value
-	timer.paused = false
-
-func _on_cell_style_item_selected(index):
-	cell_style = index
-
-func _on_rle_input_child_entered_tree(node):
-	rle_input = node
-
-func _on_rle_input_text_changed():
-	if not rle_input:
-		return
-
-	# Stop simulation
-	timer.stop()
-	timer.paused = false
-
-	# Clear original grid if it's not empty
-	original_grid.clear()
-
-	# Reset counters
-	reset_counters()
-
-	# Parse RLE input
-	var rle = rle_input.text
-	var result = parse_rle(rle)
-
-	if result["success"]:
-		print("RLE input parsed successfully.")
-
-		current_grid.clear()
-		next_grid.clear()
-
-		current_grid = result["grid"]
-		next_grid = current_grid.duplicate()
-
-		grid_size = result["size"]
-		emit_signal("grid_size_changed", grid_size)
-		rule_births = result["rule"]["births"]
-		rule_survivals = result["rule"]["survivals"]
-
-		generate_rects()
-		queue_redraw()
+func _on_alive_color_changed(color: Color) -> void:
+	colors_alive = color
