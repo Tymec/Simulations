@@ -1,7 +1,6 @@
 extends Node2D
 
 
-#const INVOCATIONS = 1
 enum EdgeBehaviour {WRAP = 0, DEAD = 1, KILL = 2}
 enum Counter {GENERATION = 0, SURVIVALS = 1, BIRTHS = 2, DEATHS = 3}
 
