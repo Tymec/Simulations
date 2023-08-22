@@ -4,4 +4,3 @@
 
 [node name="ComputeShader" type="Node"]
 script = ExtResource("1_jkuge")
-shader_file = "res://shaders/GameOfLifeCompute.glsl"

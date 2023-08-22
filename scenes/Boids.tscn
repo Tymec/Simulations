@@ -1,0 +1,26 @@
+[gd_scene load_steps=4 format=3 uid="uid://dtf10i74ppe0m"]
+
+[ext_resource type="PackedScene" uid="uid://b3m4ni3qff5kg" path="res://components/GlobalManager.tscn" id="1_0p0va"]
+[ext_resource type="Script" path="res://scripts/Boids.gd" id="2_1e476"]
+[ext_resource type="PackedScene" uid="uid://rreg2q7leebe" path="res://components/ComputeShader.tscn" id="3_ugx53"]
+
+[node name="Root" type="Node"]
+
+[node name="GlobalManager" parent="." instance=ExtResource("1_0p0va")]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+
+[node name="Boids" type="Node2D" parent="."]
+script = ExtResource("2_1e476")
+
+[node name="ComputeShader" parent="Boids" instance=ExtResource("3_ugx53")]
+shader_file = "res://shaders/BoidsCompute.glsl"
+
+[node name="GUI" type="Control" parent="."]
+layout_mode = 3
+anchor_left = -0.5
+anchor_top = -0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
