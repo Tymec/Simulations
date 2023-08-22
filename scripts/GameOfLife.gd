@@ -210,8 +210,7 @@ func _ready() -> void:
 	compute.register_buffer("grid", 0, 0, grid.to_byte_array())
 	compute.register_buffer("next_grid", 1, 0, next_grid.to_byte_array())
 	compute.register_buffer("settings", 2, 0, settings.to_byte_array())
-	var status = compute.register_buffer("counters", 3, 0, counters.to_byte_array())
-	print("Status: ", status)
+	compute.register_buffer("counters", 3, 0, counters.to_byte_array())
 
 func _draw() -> void:
 	for i in range(rects.size()):
