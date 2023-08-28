@@ -109,7 +109,7 @@ func _precheck(uniform_name: String, should_contain: bool = false) -> bool:
 	return true
 
 ## Registers a storage buffer.
-func register_buffer(buffer_name: String, binding: int, size: int = 0, data: PackedByteArray = PackedByteArray()) -> bool:
+func register_storage_buffer(buffer_name: String, binding: int, size: int = 0, data: PackedByteArray = PackedByteArray()) -> bool:
 	if not _precheck(buffer_name, false):
 		return false
 
@@ -126,6 +126,27 @@ func register_buffer(buffer_name: String, binding: int, size: int = 0, data: Pac
 
 	# Create uniform, cache it and invalidate uniform set
 	_finish_register(buffer_name, rid, binding, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER)
+
+	return true
+
+## Registers a uniform buffer.
+func register_uniform_buffer(buffer_name: String, binding: int, size: int = 0, data: PackedByteArray = PackedByteArray()) -> bool:
+	if not _precheck(buffer_name, false):
+		return false
+
+	# Use data size if size is not specified
+	if size == 0:
+		size = data.size()
+
+	if size == 0:
+		print("Buffer size must be greater than 0")
+		return false
+
+	# Create buffer
+	var rid = rd.uniform_buffer_create(size, data)
+
+	# Create uniform, cache it and invalidate uniform set
+	_finish_register(buffer_name, rid, binding, RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER)
 
 	return true
 
@@ -178,7 +199,7 @@ func unregister_uniform(uniform_name: String) -> bool:
 
 	return true
 
-## Updates a storage buffer with new data.
+## Updates a buffer with new data.
 func update_buffer(buffer_name: String, data: PackedByteArray) -> bool:
 	if not _precheck(buffer_name, true):
 		return false
