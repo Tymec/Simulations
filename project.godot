@@ -18,3 +18,8 @@ config/icon="res://icon.svg"
 [autoload]
 
 Helper="*res://scripts/utils/Helper.gd"
+
+[display]
+
+window/stretch/mode="viewport"
+window/stretch/aspect="expand"

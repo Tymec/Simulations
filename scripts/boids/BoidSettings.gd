@@ -5,18 +5,45 @@ extends Resource
 signal settings_changed
 
 
-@export_range(1, 500) var min_speed: float = 200.0
-@export_range(1, 500) var max_speed: float = 300.0
+@export_range(1, 500) var min_speed: float = 200.0:
+	set(val):
+		min_speed = val
+		settings_changed.emit()
+@export_range(1, 500) var max_speed: float = 300.0:
+	set(val):
+		max_speed = val
+		settings_changed.emit()
 @export_group("Edge", "edge_")
-@export var edge_wrap: bool = true
-@export var edge_avoid: bool = false
-@export var edge_avoidance_weight: float = 10.0
+@export var edge_wrap: bool = true:
+	set(val):
+		edge_wrap = val
+		settings_changed.emit()
+@export var edge_avoid: bool = false:
+	set(val):
+		edge_avoid = val
+		settings_changed.emit()
+@export var edge_avoidance_weight: float = 10.0:
+	set(val):
+		edge_avoidance_weight = val
+		settings_changed.emit()
 @export var edge_visualize: bool = false
 @export_subgroup("Margin", "edge_margin_")
-@export_range(0, 300, 1, "allow_greater") var edge_margin_left: int = 100
-@export_range(0, 300, 1, "allow_greater") var edge_margin_right: int = 100
-@export_range(0, 300, 1, "allow_greater") var edge_margin_top: int = 100
-@export_range(0, 300, 1, "allow_greater") var edge_margin_bottom: int = 100
+@export_range(0, 300, 1, "allow_greater") var edge_margin_left: int = 100:
+	set(val):
+		edge_margin_left = val
+		settings_changed.emit()
+@export_range(0, 300, 1, "allow_greater") var edge_margin_right: int = 100:
+	set(val):
+		edge_margin_right = val
+		settings_changed.emit()
+@export_range(0, 300, 1, "allow_greater") var edge_margin_top: int = 100:
+	set(val):
+		edge_margin_top = val
+		settings_changed.emit()
+@export_range(0, 300, 1, "allow_greater") var edge_margin_bottom: int = 100:
+	set(val):
+		edge_margin_bottom = val
+		settings_changed.emit()
 @export_subgroup("", "")
 @export_group("View", "view_")
 @export_range(0, 360) var view_angle: int = 270:
@@ -37,9 +64,18 @@ signal settings_changed
 		distance_cohesion = val
 		settings_changed.emit()
 @export_group("Weight", "weight_")
-@export_range(0, 10) var weight_separation: float = 0.3
-@export_range(0, 10) var weight_alignment: float = 0.1
-@export_range(0, 10) var weight_cohesion: float = 0.05
+@export_range(0, 10) var weight_separation: float = 0.3:
+	set(val):
+		weight_separation = val
+		settings_changed.emit()
+@export_range(0, 10) var weight_alignment: float = 0.1:
+	set(val):
+		weight_alignment = val
+		settings_changed.emit()
+@export_range(0, 10) var weight_cohesion: float = 0.05:
+	set(val):
+		weight_cohesion = val
+		settings_changed.emit()
 @export_group("Visualize", "visualize_")
 @export var visualize_separation: bool = false
 @export var visualize_alignment: bool = false
@@ -58,11 +94,25 @@ func visualizations_enabled() -> bool:
 
 func to_byte_array() -> PackedByteArray:
 	var buffer = PackedByteArray()
-	buffer.resize(16)
+	buffer.resize(56)
 
-	buffer.encode_s32(0, view_angle)
+	buffer.encode_float(0, deg_to_rad(view_angle / 2.0))
+
 	buffer.encode_s32(4, distance_separation)
 	buffer.encode_s32(8, distance_alignment)
 	buffer.encode_s32(12, distance_cohesion)
+
+	buffer.encode_float(16, weight_separation)
+	buffer.encode_float(20, weight_alignment)
+	buffer.encode_float(24, weight_cohesion)
+
+	buffer.encode_float(28, min_speed)
+	buffer.encode_float(32, max_speed)
+
+	buffer.encode_float(36, edge_avoidance_weight if edge_avoid else 0.0)
+	buffer.encode_float(40, edge_margin_left)
+	buffer.encode_float(44, edge_margin_right)
+	buffer.encode_float(48, edge_margin_top)
+	buffer.encode_float(52, edge_margin_bottom)
 
 	return buffer

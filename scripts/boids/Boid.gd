@@ -4,9 +4,6 @@ extends Node2D
 
 @export var settings: BoidSettings
 
-var avoidance_heading: Vector2 = Vector2.ZERO
-var avg_flock_heading: Vector2 = Vector2.ZERO
-var avg_flock_center: Vector2 = Vector2.ZERO
 var flockmates_in_view: Array[Boid] = []
 
 var edge: Vector2
@@ -14,12 +11,13 @@ var is_following: bool = false
 var new_scale: float = 1.0
 var velocity: Vector2 = Vector2.ZERO
 
-@onready var shape: Polygon2D = $Polygon2D
+@onready var center_node: Node2D = $Center
+@onready var shape: Polygon2D = $Center/Polygon2D
 
 
 func _ready() -> void:
 	# Apply scale and color
-	shape.scale = Vector2(new_scale, new_scale)
+	center_node.scale = Vector2(new_scale, new_scale)
 	shape.color = Color(.7, 0.2, .4, 1) if is_following else Color(0, 0.8, 0.8, 1)
 
 func _draw():
@@ -80,30 +78,14 @@ func _draw():
 		draw_line(Vector2.ZERO, to_local(boid.global_position), color)
 
 ## Updates the boid
-func update(delta: float) -> void:
-	var acceleration = Vector2.ZERO
-
-	# Update flockmates
-	acceleration += avoidance_heading * settings.weight_separation
-	acceleration += avg_flock_heading * settings.weight_alignment
-	acceleration += avg_flock_center * settings.weight_cohesion
-
-	# Avoid edges
-	if settings.edge_avoid:
-		var weight = settings.edge_avoidance_weight
-		if position.x < -edge.x + settings.edge_margin_left:
-			acceleration.x += weight
-		elif position.x > edge.x - settings.edge_margin_right:
-			acceleration.x -= weight
-		if position.y < -edge.y + settings.edge_margin_top:
-			acceleration.y += weight
-		elif position.y > edge.y - settings.edge_margin_bottom:
-			acceleration.y -= weight
-
-	# Move boid
-	move(acceleration, delta)
+func update(delta: float, new_velocity: Vector2) -> void:
+	# Move and rotate according to velocity
+	velocity = new_velocity * delta
+	position += velocity
+	rotation = velocity.angle()
 
 	# Wrap around the screen
+	# TODO: Move to compute shader
 	if settings.edge_wrap:
 		position.x = wrapf(position.x, -edge.x, edge.x)
 		position.y = wrapf(position.y, -edge.y, edge.y)
@@ -111,20 +93,6 @@ func update(delta: float) -> void:
 	# DEBUG: Redraw gizmos
 	if is_following and settings.visualizations_enabled():
 		queue_redraw()
-
-## Updates the boid's position based on the given acceleration
-func move(acceleration: Vector2, delta: float) -> void:
-	# Apply acceleration to velocity
-	velocity += acceleration
-
-	# Clamp velocity to max speed
-	var speed = clampf(velocity.length(), settings.min_speed, settings.max_speed)
-	var dir = velocity.normalized()
-	velocity = dir * speed
-
-	# Move and rotate according to velocity
-	position += velocity * delta
-	rotation = velocity.angle()
 
 ## Returns the direction the boid is facing
 func get_direction() -> Vector2:
