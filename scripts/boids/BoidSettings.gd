@@ -22,7 +22,7 @@ signal settings_changed
 	set(val):
 		edge_avoid = val
 		settings_changed.emit()
-@export var edge_avoidance_weight: float = 10.0:
+@export var edge_avoidance_weight: float = 0.2:
 	set(val):
 		edge_avoidance_weight = val
 		settings_changed.emit()
@@ -51,28 +51,32 @@ signal settings_changed
 		view_angle = val
 		settings_changed.emit()
 @export_group("Distance", "distance_")
-@export_range(0, 500) var distance_separation: int = 50:
+@export_range(0, 500) var distance_separation: int = 10:
 	set(val):
 		distance_separation = val
 		settings_changed.emit()
-@export_range(0, 500) var distance_alignment: int = 100:
+@export_range(0, 500) var distance_alignment: int = 50:
 	set(val):
 		distance_alignment = val
 		settings_changed.emit()
-@export_range(0, 500) var distance_cohesion: int = 200:
+@export_range(0, 500) var distance_cohesion: int = 50:
 	set(val):
 		distance_cohesion = val
 		settings_changed.emit()
+@export_range(0, 500) var distance_family_avoidance: int = 50:
+	set(val):
+		distance_family_avoidance = val
+		settings_changed.emit()
 @export_group("Weight", "weight_")
-@export_range(0, 10) var weight_separation: float = 0.3:
+@export_range(0, 2) var weight_separation: float = 0.05:
 	set(val):
 		weight_separation = val
 		settings_changed.emit()
-@export_range(0, 10) var weight_alignment: float = 0.1:
+@export_range(0, 2) var weight_alignment: float = 0.05:
 	set(val):
 		weight_alignment = val
 		settings_changed.emit()
-@export_range(0, 10) var weight_cohesion: float = 0.05:
+@export_range(0, 2, 0.0001) var weight_cohesion: float = 0.0005:
 	set(val):
 		weight_cohesion = val
 		settings_changed.emit()
@@ -94,7 +98,7 @@ func visualizations_enabled() -> bool:
 
 func to_byte_array() -> PackedByteArray:
 	var buffer = PackedByteArray()
-	buffer.resize(56)
+	buffer.resize(60)
 
 	buffer.encode_float(0, deg_to_rad(view_angle / 2.0))
 
@@ -114,5 +118,8 @@ func to_byte_array() -> PackedByteArray:
 	buffer.encode_float(44, edge_margin_right)
 	buffer.encode_float(48, edge_margin_top)
 	buffer.encode_float(52, edge_margin_bottom)
+
+	# TODO: Revisit this later
+	buffer.encode_float(56, distance_family_avoidance)
 
 	return buffer

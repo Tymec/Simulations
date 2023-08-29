@@ -78,17 +78,11 @@ func _draw():
 		draw_line(Vector2.ZERO, to_local(boid.global_position), color)
 
 ## Updates the boid
-func update(delta: float, new_velocity: Vector2) -> void:
+func update(new_velocity: Vector2, new_position: Vector2) -> void:
 	# Move and rotate according to velocity
-	velocity = new_velocity * delta
-	position += velocity
+	velocity = new_velocity
+	position = new_position
 	rotation = velocity.angle()
-
-	# Wrap around the screen
-	# TODO: Move to compute shader
-	if settings.edge_wrap:
-		position.x = wrapf(position.x, -edge.x, edge.x)
-		position.y = wrapf(position.y, -edge.y, edge.y)
 
 	# DEBUG: Redraw gizmos
 	if is_following and settings.visualizations_enabled():

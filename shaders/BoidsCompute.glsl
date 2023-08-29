@@ -7,12 +7,13 @@ const float TAU = 6.28318530718;
 
 // Definitions
 struct Boid {
-  vec2 position;  // offset: 0, align: 8
-	vec2 velocity;  // offset: 8, align: 8
+  vec2 position;    // offset: 0, align: 8
+	vec2 velocity;    // offset: 8, align: 8
+  vec2 family;      // offset: 16, align: 8
 };
 
 // Uniforms and buffers
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 layout(set = 0, binding = 0, std140) restrict readonly buffer Settings {
   float viewAngle;        // offset: 0, align: 4
 
@@ -32,17 +33,22 @@ layout(set = 0, binding = 0, std140) restrict readonly buffer Settings {
   float edgeMarginRight;     // offset: 44, align: 4
   float edgeMarginTop;       // offset: 48, align: 4
   float edgeMarginBottom;    // offset: 52, align: 4
+
+  float distanceFamilyAvoidance; // offset: 56, align: 4
 } settings;
 layout(set = 0, binding = 1, std430) restrict readonly buffer Params {
-  vec2 edgeStart; // offset: 0, align: 8
-  vec2 edgeEnd;   // offset: 8, align: 8
+  float xMax;       // offset: 0, align: 4
+  float yMax;       // offset: 4, align: 4
+  int imageSize;    // offset: 8, align: 4
+  float deltaTime;  // offset: 12, align: 4
 } params;
 layout(set = 0, binding = 2, std430) restrict readonly buffer BoidsIn {
   Boid boidsIn[];
 };
-layout(set = 0, binding = 3, std430) restrict writeonly buffer BoidsOut {
+layout(set = 0, binding = 3, std430) restrict buffer BoidsOut {
   Boid boidsOut[];
 };
+layout(rgba32f, binding = 4) uniform image2D boidsOutImage;
 
 // Functions
 float dst(vec2 v1, vec2 v2) {
@@ -86,13 +92,21 @@ void main() {
     float dist = dst(boid.position, other.position);
 
     // Check if boid is in view
-    if (!is_boid_in_fov(boid.position, rotation, other.position)) {
-      continue;
-    }
+    // if (!is_boid_in_fov(boid.position, rotation, other.position)) {
+    //   continue;
+    // }
 
     if (dist < settings.distanceSeparation) {
       // Separation
       avoidanceHeading += boid.position - other.position;
+      continue;
+    }
+
+    // Avoid boids of other families
+    if (boid.family.x != other.family.x) {
+      if (dist < settings.distanceFamilyAvoidance) {
+        avoidanceHeading += boid.position - other.position;
+      }
       continue;
     }
 
@@ -122,15 +136,15 @@ void main() {
 
   // Avoid edges
   if (settings.edgeAvoidanceWeight > 0) {
-    if (boid.position.x < params.edgeStart.x + settings.edgeMarginLeft) {
+    if (boid.position.x < settings.edgeMarginLeft) {
       acceleration.x += settings.edgeAvoidanceWeight;
-    } else if (boid.position.x > params.edgeEnd.x - settings.edgeMarginRight) {
+    } else if (boid.position.x > params.xMax - settings.edgeMarginRight) {
       acceleration.x -= settings.edgeAvoidanceWeight;
     }
 
-    if (boid.position.y < params.edgeStart.y + settings.edgeMarginTop) {
+    if (boid.position.y < settings.edgeMarginTop) {
       acceleration.y += settings.edgeAvoidanceWeight;
-    } else if (boid.position.y > params.edgeEnd.y - settings.edgeMarginBottom) {
+    } else if (boid.position.y > params.yMax - settings.edgeMarginBottom) {
       acceleration.y -= settings.edgeAvoidanceWeight;
     }
   }
@@ -142,10 +156,31 @@ void main() {
   float speed = clamp(length(velocity), settings.minSpeed, settings.maxSpeed);
   velocity = normalize(velocity) * speed;
 
-  // test, write to position if velocity has been accessed by another thread
+  // Update velocity and position
+  velocity *= params.deltaTime;
+  vec2 pos = boid.position + velocity;
+
+  // Wrap around screen
+  if (pos.x < 0) {
+    pos.x = params.xMax;
+  } else if (pos.x > params.xMax) {
+    pos.x = 0;
+  }
+  if (pos.y < 0) {
+    pos.y = params.yMax;
+  } else if (pos.y > params.yMax) {
+    pos.y = 0;
+  }
+
+  // Write to buffer
+  boidsOut[index].position = pos;
   boidsOut[index].velocity = velocity;
+  boidsOut[index].family = boid.family;
 
-  // TODO: Update position
+  // Write to image (R = pos_x, G = pos_y)
+  int col = int(mod(index, params.imageSize));
+  int row = int(index / params.imageSize);
 
-  // TODO: Wrap around screen
+  // TODO: Add color image output
+  imageStore(boidsOutImage, ivec2(col, row), vec4(pos.x, pos.y, boid.family.x, 0.0));
 }
