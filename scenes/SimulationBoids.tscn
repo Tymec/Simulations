@@ -1,0 +1,337 @@
+[gd_scene load_steps=14 format=3 uid="uid://dod4vn2ugd00g"]
+
+[ext_resource type="PackedScene" uid="uid://b3m4ni3qff5kg" path="res://components/GlobalManager.tscn" id="1_pkexl"]
+[ext_resource type="Script" path="res://scripts/boids/BoidManager.gd" id="2_5sutd"]
+[ext_resource type="FontFile" uid="uid://ck7n2bhjicuq3" path="res://fonts/Lato/Lato-Bold.ttf" id="2_nc0ri"]
+[ext_resource type="PackedScene" uid="uid://cc3rplykq7o6t" path="res://components/boids/Boid.tscn" id="3_m3ehb"]
+[ext_resource type="FontFile" uid="uid://cp38q6vhnt3it" path="res://fonts/Lato/Lato-BoldItalic.ttf" id="3_vunsy"]
+[ext_resource type="Script" path="res://scripts/boids/BoidSettings.gd" id="4_7bkgr"]
+[ext_resource type="FontFile" uid="uid://bfnvxgbeyp1yn" path="res://fonts/Lato/Lato-Italic.ttf" id="4_kq8i3"]
+[ext_resource type="FontFile" uid="uid://b6tacx41g4012" path="res://fonts/Lato/Lato-Regular.ttf" id="5_ieyy7"]
+[ext_resource type="PackedScene" uid="uid://rreg2q7leebe" path="res://components/ComputeShader.tscn" id="5_wt1wp"]
+
+[sub_resource type="Resource" id="Resource_cvaj2"]
+script = ExtResource("4_7bkgr")
+min_speed = 200.0
+max_speed = 300.0
+edge_wrap = true
+edge_avoid = false
+edge_avoidance_weight = 10.0
+edge_visualize = false
+edge_margin_left = 100
+edge_margin_right = 100
+edge_margin_top = 100
+edge_margin_bottom = 100
+view_angle = 270
+distance_separation = 50
+distance_alignment = 100
+distance_cohesion = 100
+weight_separation = 0.3
+weight_alignment = 0.1
+weight_cohesion = 0.05
+visualize_separation = false
+visualize_alignment = false
+visualize_cohesion = false
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wwq3r"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.172549, 0.172549, 0.172549, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="Theme" id="Theme_k3s7e"]
+MarginContainer/constants/margin_right = 4
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_wwq3r")
+RichTextLabel/fonts/bold_font = ExtResource("2_nc0ri")
+RichTextLabel/fonts/bold_italics_font = ExtResource("3_vunsy")
+RichTextLabel/fonts/italics_font = ExtResource("4_kq8i3")
+RichTextLabel/fonts/normal_font = ExtResource("5_ieyy7")
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_5fduw"]
+content_margin_right = 9.0
+color = Color(0.192157, 0.192157, 0.192157, 1)
+thickness = 8
+vertical = true
+
+[node name="Root" type="Node"]
+
+[node name="GlobalManager" parent="." instance=ExtResource("1_pkexl")]
+
+[node name="BoidManager" type="Node2D" parent="."]
+script = ExtResource("2_5sutd")
+boid_object = ExtResource("3_m3ehb")
+settings = SubResource("Resource_cvaj2")
+spawn_count = 1000
+
+[node name="ComputeShader" parent="BoidManager" instance=ExtResource("5_wt1wp")]
+shader_file = "res://shaders/BoidsCompute.glsl"
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_k3s7e")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="SubViewport" type="SubViewport" parent="MarginContainer/HBoxContainer/SubViewportContainer"]
+disable_3d = true
+handle_input_locally = false
+size = Vector2i(960, 648)
+render_target_update_mode = 0
+
+[node name="VSeparator" type="VSeparator" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+theme_override_styles/separator = SubResource("StyleBoxLine_5fduw")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RichTextLabel" type="RichTextLabel" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "[center][font_size=32][b]Settings[/b][/font_size][/center]"
+fit_content = true
+shortcut_keys_enabled = false
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TabContainer" type="TabContainer" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Separation" type="PanelContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Separation"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Separation/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Separation/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show"
+
+[node name="CheckButton" type="CheckButton" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Separation/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Separation/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Separation/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Distance"
+
+[node name="SpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Separation/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+value = 100.0
+allow_greater = true
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Separation/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Separation/VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Weight"
+
+[node name="SpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Separation/VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+max_value = 10.0
+step = 0.1
+value = 3.0
+
+[node name="Alignment" type="PanelContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Alignment"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Alignment/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Alignment/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show"
+
+[node name="CheckButton" type="CheckButton" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Alignment/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Alignment/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Alignment/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Distance"
+
+[node name="SpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Alignment/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+value = 100.0
+allow_greater = true
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Alignment/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Alignment/VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Weight"
+
+[node name="SpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Alignment/VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+max_value = 10.0
+step = 0.1
+value = 3.0
+
+[node name="Cohesion" type="PanelContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Cohesion"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Cohesion/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Cohesion/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show"
+
+[node name="CheckButton" type="CheckButton" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Cohesion/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Cohesion/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Cohesion/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Distance"
+
+[node name="SpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Cohesion/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+value = 100.0
+allow_greater = true
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Cohesion/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Cohesion/VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Weight"
+
+[node name="SpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/VBoxContainer/TabContainer/Cohesion/VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+max_value = 10.0
+step = 0.1
+value = 3.0
+
+[node name="RichTextLabel2" type="RichTextLabel" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "[center][font_size=20]Separation[/font_size][/center]"
+fit_content = true
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RichTextLabel3" type="RichTextLabel" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "[center][font_size=20]Alignment[/font_size][/center]"
+fit_content = true
+
+[node name="HSeparator3" type="HSeparator" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RichTextLabel4" type="RichTextLabel" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "[center][font_size=20]Cohesion[/font_size][/center]"
+fit_content = true
+
+[node name="HSeparator4" type="HSeparator" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+
+[node name="RichTextLabel5" type="RichTextLabel" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+bbcode_enabled = true
+text = "[center][font_size=20]Other[/font_size][/center]"
+fit_content = true
+
+[node name="PanelContainer4" type="PanelContainer" parent="MarginContainer/HBoxContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/PanelContainer4"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/PanelContainer4/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/PanelContainer4/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Speed"
+
+[node name="SpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/VBoxContainer/PanelContainer4/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+value = 100.0
+allow_greater = true
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/PanelContainer4/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/PanelContainer4/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Distance"
+
+[node name="SpinBox" type="SpinBox" parent="MarginContainer/HBoxContainer/VBoxContainer/PanelContainer4/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+value = 100.0
+allow_greater = true
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="MarginContainer/HBoxContainer/VBoxContainer/PanelContainer4/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/VBoxContainer/PanelContainer4/VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Edge"
+
+[node name="OptionButton" type="OptionButton" parent="MarginContainer/HBoxContainer/VBoxContainer/PanelContainer4/VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+item_count = 2
+selected = 0
+popup/item_0/text = "Wrap"
+popup/item_0/id = 0
+popup/item_1/text = "Avoid"
+popup/item_1/id = 1

@@ -1,5 +1,6 @@
 extends Node2D
 
+
 func _bresenhamLow(origin: Vector2i, destination: Vector2i) -> Array[Vector2i]:
 	var dx = destination.x - origin.x
 	var dy = destination.y - origin.y
@@ -59,3 +60,45 @@ func bresenham(origin: Vector2i, destination: Vector2i) -> Array[Vector2i]:
 			return _bresenhamHigh(destination, origin)
 		else:
 			return _bresenhamHigh(origin, destination)
+
+## Creates a raycast from the given position (global) at the given angle (degrees) and length.
+func ray_at_angle(
+	pos: Vector2,
+	length: float,
+	angle: float,
+	collision_mask: int = -1,
+	exclude: Array[RID] = []
+) -> PhysicsRayQueryParameters2D:
+	var query = PhysicsRayQueryParameters2D.create(
+		pos,
+		pos + Vector2(length, 0).rotated(deg_to_rad(angle))
+	)
+	if collision_mask != -1:
+		query.collision_mask = collision_mask
+	query.exclude = exclude
+	return query
+
+## Creates a polygon of points that form a circle arc between the given angles (radians)
+## relative to the current node's rotation.
+func circle_arc_poly(
+	center: Vector2, radius: float,
+	angle_from: float, angle_to: float,
+	resolution: int = 32
+) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	var angle_step: float = (angle_to - angle_from) / resolution
+	var radius_vector: Vector2 = Vector2(radius, 0)
+
+	if abs(angle_to - angle_from) < TAU:
+		points.append(center)
+
+	if abs(angle_to - angle_from) < 0.01:
+		return points
+
+	for i in range(resolution):
+		var angle: float = angle_from + i * angle_step
+		points.append(
+			center + radius_vector.rotated(angle)
+		)
+
+	return points
