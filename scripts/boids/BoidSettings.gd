@@ -22,10 +22,6 @@ signal settings_changed
 	set(val):
 		edge_avoid = val
 		settings_changed.emit()
-@export var edge_avoidance_weight: float = 0.2:
-	set(val):
-		edge_avoidance_weight = val
-		settings_changed.emit()
 @export var edge_visualize: bool = false
 @export_subgroup("Margin", "edge_margin_")
 @export_range(0, 300, 1, "allow_greater") var edge_margin_left: int = 100:
@@ -63,16 +59,20 @@ signal settings_changed
 	set(val):
 		distance_cohesion = val
 		settings_changed.emit()
-@export_range(0, 500) var distance_family_avoidance: int = 50:
+@export_range(0, 500) var distance_family: int = 50:
 	set(val):
-		distance_family_avoidance = val
+		distance_family = val
+		settings_changed.emit()
+@export_range(0, 500) var distance_predator: int = 50:
+	set(val):
+		distance_predator = val
 		settings_changed.emit()
 @export_group("Weight", "weight_")
-@export_range(0, 2) var weight_separation: float = 0.05:
+@export_range(0, 2, 0.0001) var weight_separation: float = 0.05:
 	set(val):
 		weight_separation = val
 		settings_changed.emit()
-@export_range(0, 2) var weight_alignment: float = 0.05:
+@export_range(0, 2, 0.0001) var weight_alignment: float = 0.05:
 	set(val):
 		weight_alignment = val
 		settings_changed.emit()
@@ -80,46 +80,43 @@ signal settings_changed
 	set(val):
 		weight_cohesion = val
 		settings_changed.emit()
-@export_group("Visualize", "visualize_")
-@export var visualize_separation: bool = false
-@export var visualize_alignment: bool = false
-@export var visualize_cohesion: bool = false
+@export_range(0, 10, 0.1) var weight_edge: float = 0.5:
+	set(val):
+		weight_edge = val
+		settings_changed.emit()
+@export_range(0, 10, 0.1) var weight_predator: float = 3:
+	set(val):
+		weight_predator = val
+		settings_changed.emit()
 @export_group("", "")
 
 
-func get_view_angle_half() -> float:
-	return deg_to_rad(view_angle / 2.0)
-
-func get_view_radius() -> float:
-	return max(distance_separation, distance_alignment, distance_cohesion)
-
-func visualizations_enabled() -> bool:
-	return visualize_separation || visualize_alignment || visualize_cohesion
-
 func to_byte_array() -> PackedByteArray:
 	var buffer = PackedByteArray()
-	buffer.resize(60)
+	buffer.resize(72)
 
 	buffer.encode_float(0, deg_to_rad(view_angle / 2.0))
 
-	buffer.encode_s32(4, distance_separation)
-	buffer.encode_s32(8, distance_alignment)
-	buffer.encode_s32(12, distance_cohesion)
+	buffer.encode_s32(4, distance_separation * distance_separation)
+	buffer.encode_s32(8, distance_alignment * distance_alignment)
+	buffer.encode_s32(12, distance_cohesion * distance_cohesion)
+	buffer.encode_s32(16, distance_family * distance_family)
+	buffer.encode_s32(20, distance_predator * distance_predator)
 
-	buffer.encode_float(16, weight_separation)
-	buffer.encode_float(20, weight_alignment)
-	buffer.encode_float(24, weight_cohesion)
+	buffer.encode_float(24, weight_separation)
+	buffer.encode_float(28, weight_alignment)
+	buffer.encode_float(32, weight_cohesion)
+	buffer.encode_float(36, weight_edge)
+	buffer.encode_float(40, weight_predator)
 
-	buffer.encode_float(28, min_speed)
-	buffer.encode_float(32, max_speed)
+	buffer.encode_float(44, min_speed)
+	buffer.encode_float(48, max_speed)
 
-	buffer.encode_float(36, edge_avoidance_weight if edge_avoid else 0.0)
-	buffer.encode_float(40, edge_margin_left)
-	buffer.encode_float(44, edge_margin_right)
-	buffer.encode_float(48, edge_margin_top)
-	buffer.encode_float(52, edge_margin_bottom)
+	buffer.encode_float(52, edge_margin_left)
+	buffer.encode_float(56, edge_margin_right)
+	buffer.encode_float(60, edge_margin_top)
+	buffer.encode_float(64, edge_margin_bottom)
 
-	# TODO: Revisit this later
-	buffer.encode_float(56, distance_family_avoidance)
+	buffer.encode_s32(68, 1 if edge_wrap else 0)
 
 	return buffer

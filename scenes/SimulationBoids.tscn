@@ -1,9 +1,8 @@
-[gd_scene load_steps=16 format=3 uid="uid://dod4vn2ugd00g"]
+[gd_scene load_steps=15 format=3 uid="uid://dod4vn2ugd00g"]
 
 [ext_resource type="PackedScene" uid="uid://b3m4ni3qff5kg" path="res://components/GlobalManager.tscn" id="1_pkexl"]
 [ext_resource type="Script" path="res://scripts/boids/BoidManager.gd" id="2_5sutd"]
 [ext_resource type="FontFile" uid="uid://ck7n2bhjicuq3" path="res://fonts/Lato/Lato-Bold.ttf" id="2_nc0ri"]
-[ext_resource type="PackedScene" uid="uid://cc3rplykq7o6t" path="res://components/boids/Boid.tscn" id="3_m3ehb"]
 [ext_resource type="FontFile" uid="uid://cp38q6vhnt3it" path="res://fonts/Lato/Lato-BoldItalic.ttf" id="3_vunsy"]
 [ext_resource type="Script" path="res://scripts/boids/BoidSettings.gd" id="4_7bkgr"]
 [ext_resource type="FontFile" uid="uid://bfnvxgbeyp1yn" path="res://fonts/Lato/Lato-Italic.ttf" id="4_kq8i3"]
@@ -17,7 +16,6 @@ min_speed = 200.0
 max_speed = 300.0
 edge_wrap = false
 edge_avoid = true
-edge_avoidance_weight = 2.0
 edge_visualize = false
 edge_margin_left = 100
 edge_margin_right = 100
@@ -27,13 +25,13 @@ view_angle = 270
 distance_separation = 10
 distance_alignment = 50
 distance_cohesion = 50
-distance_family_avoidance = 50
-weight_separation = 0.0
-weight_alignment = 0.0
-weight_cohesion = 0.0
-visualize_separation = false
-visualize_alignment = false
-visualize_cohesion = false
+distance_family = 15
+distance_predator = 50
+weight_separation = 0.05
+weight_alignment = 0.07
+weight_cohesion = 0.03
+weight_edge = 0.5
+weight_predator = 3.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_8okvb"]
 shader = ExtResource("6_1g33x")
@@ -70,7 +68,6 @@ vertical = true
 
 [node name="BoidManager" type="Node2D" parent="."]
 script = ExtResource("2_5sutd")
-boid_object = ExtResource("3_m3ehb")
 settings = SubResource("Resource_cvaj2")
 spawn_count = 10000
 

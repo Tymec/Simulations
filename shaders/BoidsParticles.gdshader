@@ -1,5 +1,6 @@
 shader_type particles;
-uniform sampler2D boid_data; // R = pos.x, G = pos.y, B = family
+uniform sampler2D boid_data;
+uniform sampler2D color_data;
 uniform float scale;
 
 
@@ -16,13 +17,6 @@ void process() {
 	TRANSFORM[0].xy = scale_mat[0];
 	TRANSFORM[1].xy = scale_mat[1];
 
-  // Set color based on family
-  int family = int(boid.b);
-  if (family == 0) {
-    COLOR = vec4(1.0, 0.0, 0.0, 1.0);
-  } else if (family == 1) {
-    COLOR = vec4(0.0, 1.0, 0.0, 1.0);
-  } else if (family == 2) {
-    COLOR = vec4(0.0, 0.0, 1.0, 1.0);
-  }
+  vec4 color = texelFetch(color_data, ivec2(col, row), 0);
+  COLOR = color;
 }
