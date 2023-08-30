@@ -11,10 +11,19 @@ config_version=5
 [application]
 
 config/name="Simulations"
-run/main_scene="res://scenes/GameOfLife.tscn"
+run/main_scene="res://scenes/SimulationBoids.tscn"
 config/features=PackedStringArray("4.1", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
 Helper="*res://scripts/utils/Helper.gd"
+
+[display]
+
+window/stretch/mode="viewport"
+window/stretch/aspect="expand"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.188235, 0.188235, 0.188235, 1)
