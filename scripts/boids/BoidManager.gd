@@ -21,6 +21,7 @@ var params: PackedByteArray = PackedByteArray()
 var dispatch_size: int = 0
 
 var update_settings_request: bool = false
+var update_mouse_request: bool = false
 var output_image: Image
 var output_texture: ImageTexture
 var color_image: Image
@@ -38,12 +39,14 @@ func _ready() -> void:
 	var center = get_viewport_rect().size / 2
 
 	# Set params
-	params.resize(16)
+	params.resize(24)
 	var edge = get_viewport_rect().size
 	params.encode_float(0, edge.x)
 	params.encode_float(4, edge.y)
 	params.encode_s32(8, image_size)
-	params.encode_float(12, 0)
+	params.encode_float(12, edge.x + 100)
+	params.encode_float(16, edge.y + 100)
+	params.encode_float(20, 0)
 
 	# Spawn boids
 	var predators = spawn_predators
@@ -112,7 +115,11 @@ func _process(delta):
 	# Update the buffer
 	boid_data = compute.fetch_buffer("BoidsOut")
 	compute.update_buffer("BoidsIn", boid_data)
-	params.encode_float(12, delta)
+	if update_mouse_request:
+		update_mouse_request = false
+		params.encode_float(12, get_local_mouse_position().x)
+		params.encode_float(16, get_local_mouse_position().y)
+	params.encode_float(20, delta)
 	compute.update_buffer("Params", params)
 	if update_settings_request:
 		update_settings_request = false
@@ -120,6 +127,10 @@ func _process(delta):
 
 	# Execute the compute shader
 	compute.execute(dispatch_size, 1, 1)
+
+func _input(event):
+	if event is InputEventMouseMotion:
+		update_mouse_request = true
 
 ## Called when the settings change
 func _on_settings_changed() -> void:

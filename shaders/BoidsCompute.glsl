@@ -23,12 +23,14 @@ layout(set = 0, binding = 0, std430) restrict readonly buffer Settings {
   int distanceCohesionSq;
   int distanceFamilySq;
   int distancePredatorSq;
+  int distanceMouseSq;
 
   float weightSeparation;
   float weightAlignment;
   float weightCohesion;
   float weightEdge;
   float weightPredator;
+  float weightMouse;
 
   float minSpeed;
   float maxSpeed;
@@ -44,7 +46,10 @@ layout(set = 0, binding = 1, std430) restrict readonly buffer Params {
   float xMax;       // offset: 0, align: 4
   float yMax;       // offset: 4, align: 4
   int imageSize;    // offset: 8, align: 4
-  float deltaTime;  // offset: 12, align: 4
+
+  float mouseX;     // offset: 12, align: 4
+  float mouseY;     // offset: 16, align: 4
+  float deltaTime;  // offset: 20, align: 4
 } params;
 layout(set = 0, binding = 2, std430) restrict readonly buffer BoidsIn {
   Boid boidsIn[];
@@ -138,6 +143,16 @@ vec2 handleNeighbours(uint index) {
     acceleration.y += (predatorHeading.y > 0) ? settings.weightPredator : -settings.weightPredator;
   }
 
+  // Avoid mouse if close and not out of screen
+  if (params.mouseX > 0 && params.mouseX < params.xMax && params.mouseY > 0 && params.mouseY < params.yMax) {
+    vec2 mousePos = vec2(params.mouseX, params.mouseY);
+    float dist = dst(boid.position, mousePos);
+
+    if (dist < settings.distanceMouseSq) {
+      acceleration += (boid.position - mousePos) * settings.weightMouse;
+    }
+  }
+
   acceleration += avoidanceHeading * settings.weightSeparation;
 
   if (flockmatesHeading > 0) {
@@ -160,6 +175,10 @@ float randi(vec2 co) {
 
 void main() {
   uint index = int(gl_GlobalInvocationID.x);
+  if (index >= boidsIn.length()) {
+    return;
+  }
+
   Boid boid = boidsIn[index];
   vec2 acceleration = vec2(0.0, 0.0);
 

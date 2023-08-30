@@ -67,6 +67,10 @@ signal settings_changed
 	set(val):
 		distance_predator = val
 		settings_changed.emit()
+@export_range(0, 500) var distance_mouse: int = 50:
+	set(val):
+		distance_mouse = val
+		settings_changed.emit()
 @export_group("Weight", "weight_")
 @export_range(0, 2, 0.0001) var weight_separation: float = 0.05:
 	set(val):
@@ -88,12 +92,16 @@ signal settings_changed
 	set(val):
 		weight_predator = val
 		settings_changed.emit()
+@export_range(0, 10, 0.1) var weight_mouse: float = 5:
+	set(val):
+		weight_mouse = val
+		settings_changed.emit()
 @export_group("", "")
 
 
 func to_byte_array() -> PackedByteArray:
 	var buffer = PackedByteArray()
-	buffer.resize(72)
+	buffer.resize(80)
 
 	buffer.encode_float(0, deg_to_rad(view_angle / 2.0))
 
@@ -102,21 +110,23 @@ func to_byte_array() -> PackedByteArray:
 	buffer.encode_s32(12, distance_cohesion * distance_cohesion)
 	buffer.encode_s32(16, distance_family * distance_family)
 	buffer.encode_s32(20, distance_predator * distance_predator)
+	buffer.encode_s32(24, distance_mouse * distance_mouse)
 
-	buffer.encode_float(24, weight_separation)
-	buffer.encode_float(28, weight_alignment)
-	buffer.encode_float(32, weight_cohesion)
-	buffer.encode_float(36, weight_edge)
-	buffer.encode_float(40, weight_predator)
+	buffer.encode_float(28, weight_separation)
+	buffer.encode_float(32, weight_alignment)
+	buffer.encode_float(36, weight_cohesion)
+	buffer.encode_float(40, weight_edge)
+	buffer.encode_float(44, weight_predator)
+	buffer.encode_float(48, weight_mouse)
 
-	buffer.encode_float(44, min_speed)
-	buffer.encode_float(48, max_speed)
+	buffer.encode_float(52, min_speed)
+	buffer.encode_float(56, max_speed)
 
-	buffer.encode_float(52, edge_margin_left)
-	buffer.encode_float(56, edge_margin_right)
-	buffer.encode_float(60, edge_margin_top)
-	buffer.encode_float(64, edge_margin_bottom)
+	buffer.encode_float(60, edge_margin_left)
+	buffer.encode_float(64, edge_margin_right)
+	buffer.encode_float(68, edge_margin_top)
+	buffer.encode_float(72, edge_margin_bottom)
 
-	buffer.encode_s32(68, 1 if edge_wrap else 0)
+	buffer.encode_s32(76, 1 if edge_wrap else 0)
 
 	return buffer

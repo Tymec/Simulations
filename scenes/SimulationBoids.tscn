@@ -27,11 +27,13 @@ distance_alignment = 50
 distance_cohesion = 50
 distance_family = 15
 distance_predator = 50
+distance_mouse = 50
 weight_separation = 0.05
 weight_alignment = 0.07
 weight_cohesion = 0.03
 weight_edge = 0.5
 weight_predator = 3.0
+weight_mouse = 5.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_8okvb"]
 shader = ExtResource("6_1g33x")
