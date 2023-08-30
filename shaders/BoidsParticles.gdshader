@@ -1,7 +1,7 @@
 shader_type particles;
 uniform sampler2D boid_data;
 uniform sampler2D color_data;
-uniform float scale;
+uniform float boid_size;
 
 
 void process() {
@@ -13,7 +13,7 @@ void process() {
   vec4 boid = texelFetch(boid_data, ivec2(col, row), 0);
 	TRANSFORM[3] = vec4(boid.r, boid.g, 0.0, 0.0);
 
-  mat2 scale_mat = mat2(vec2(scale, 0.0), vec2(0.0, scale));
+  mat2 scale_mat = mat2(vec2(boid_size, 0.0), vec2(0.0, boid_size));
 	TRANSFORM[0].xy = scale_mat[0];
 	TRANSFORM[1].xy = scale_mat[1];
 

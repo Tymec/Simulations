@@ -10,46 +10,48 @@ struct Boid {
   vec2 position;    // offset: 0, align: 8
 	vec2 velocity;    // offset: 8, align: 8
   int family;       // offset: 16, align: 4
-  int is_predator;  // offset: 20, align: 4
+  int isPredator;   // offset: 20, align: 4
 };
 
 // Uniforms and buffers
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 layout(set = 0, binding = 0, std430) restrict readonly buffer Settings {
-  float viewAngle;
-
-  int distanceSeparationSq;
-  int distanceAlignmentSq;
-  int distanceCohesionSq;
-  int distanceFamilySq;
-  int distancePredatorSq;
-  int distanceMouseSq;
-
-  float weightSeparation;
-  float weightAlignment;
-  float weightCohesion;
-  float weightEdge;
-  float weightPredator;
-  float weightMouse;
-
-  float minSpeed;
-  float maxSpeed;
-
-  float edgeMarginLeft;
-  float edgeMarginRight;
-  float edgeMarginTop;
-  float edgeMarginBottom;
-
+  int numBoids;
+  int separationDistance;
+  int alignmentDistance;
+  int cohesionDistance;
   int edgeWrap;
+  int edgeMarginLeft;
+  int edgeMarginRight;
+  int edgeMarginTop;
+  int edgeMarginBottom;
+  int numFamilies;
+  int familyAvoidanceDistance;
+  int numPredators;
+  int predatorSpeed;
+  int predatorAvoidanceDistance;
+  int mouseAvoidanceDistance;
+  int imageSize;
+
+  float size;
+  float speedMin;
+  float speedMax;
+  float separationWeight;
+  float alignmentWeight;
+  float cohesionWeight;
+  float edgeAvoidanceWeight;
+  float familyAvoidanceWeight;
+  float predatorAvoidanceWeight;
+  float mouseAvoidanceWeight;
 } settings;
 layout(set = 0, binding = 1, std430) restrict readonly buffer Params {
-  float xMax;       // offset: 0, align: 4
-  float yMax;       // offset: 4, align: 4
-  int imageSize;    // offset: 8, align: 4
+  float xMax;
+  float yMax;
 
-  float mouseX;     // offset: 12, align: 4
-  float mouseY;     // offset: 16, align: 4
-  float deltaTime;  // offset: 20, align: 4
+  float mouseX;
+  float mouseY;
+
+  float deltaTime;
 } params;
 layout(set = 0, binding = 2, std430) restrict readonly buffer BoidsIn {
   Boid boidsIn[];
@@ -73,7 +75,8 @@ bool is_boid_in_fov(vec2 boid_pos, float boid_rot, vec2 other_pos) {
 		angle_diff = TAU - angle_diff;
 	}
 
-	return angle_diff < settings.viewAngle;
+	//return angle_diff < settings.viewAngle;
+  return false;
 }
 
 vec2 handleNeighbours(uint index) {
@@ -84,12 +87,13 @@ vec2 handleNeighbours(uint index) {
   vec2 avoidanceHeading = vec2(0.0, 0.0);
   vec2 avgFlockHeading = vec2(0.0, 0.0);
   vec2 avgFlockCenter = vec2(0.0, 0.0);
-  vec2 predatorHeading = vec2(0.0, 0.0);
+  vec2 predatorAvoidanceHeading = vec2(0.0, 0.0);
+  vec2 familyAvoidanceHeading = vec2(0.0, 0.0);
   int flockmatesHeading = 0;
   int flockmatesCenter = 0;
 
   // Loop through all boids
-  for (uint i = 0; i < boidsIn.length(); i++) {
+  for (uint i = 0; i < settings.numBoids + settings.numPredators; i++) {
     if (i == index) {
       continue;
     }
@@ -103,44 +107,45 @@ vec2 handleNeighbours(uint index) {
     // }
 
     // Predator
-    if (other.is_predator == 1) {
-      if (dist < settings.distancePredatorSq) {
-        predatorHeading += boid.position - other.position;
+    if (other.isPredator == 1) {
+      if (dist < settings.predatorAvoidanceDistance) {
+        predatorAvoidanceHeading += boid.position - other.position;
       }
       continue;
     }
 
     // Separation
-    if (dist < settings.distanceSeparationSq) {
+    if (dist < settings.separationDistance) {
       avoidanceHeading += boid.position - other.position;
       continue;
     }
 
     // Avoid boids of other families
-    if (boid.family.x != other.family.x) {
-      if (dist < settings.distanceFamilySq) {
-        avoidanceHeading += boid.position - other.position;
+    if (boid.family != other.family) {
+      if (dist < settings.familyAvoidanceDistance) {
+        familyAvoidanceHeading += boid.position - other.position;
       }
       continue;
     }
 
     // Alignment
-    if (dist < settings.distanceAlignmentSq) {
+    if (dist < settings.alignmentDistance) {
       avgFlockHeading += other.velocity;
       flockmatesHeading += 1;
     }
 
     // Cohesion
-    if (dist < settings.distanceCohesionSq) {
+    if (dist < settings.cohesionDistance) {
       avgFlockCenter += other.position;
       flockmatesCenter += 1;
     }
   }
 
   // Apply forces
-  if (predatorHeading != vec2(0.0, 0.0)) {
-    acceleration.x += (predatorHeading.x > 0) ? settings.weightPredator : -settings.weightPredator;
-    acceleration.y += (predatorHeading.y > 0) ? settings.weightPredator : -settings.weightPredator;
+  if (predatorAvoidanceHeading != vec2(0.0, 0.0)) {
+    //acceleration.x += (predatorHeading.x > 0) ? settings.weightPredator : -settings.weightPredator;
+    //acceleration.y += (predatorHeading.y > 0) ? settings.weightPredator : -settings.weightPredator;
+    acceleration += predatorAvoidanceHeading * settings.predatorAvoidanceWeight;
   }
 
   // Avoid mouse if close and not out of screen
@@ -148,21 +153,21 @@ vec2 handleNeighbours(uint index) {
     vec2 mousePos = vec2(params.mouseX, params.mouseY);
     float dist = dst(boid.position, mousePos);
 
-    if (dist < settings.distanceMouseSq) {
-      acceleration += (boid.position - mousePos) * settings.weightMouse;
+    if (dist < settings.mouseAvoidanceDistance) {
+      acceleration += (boid.position - mousePos) * settings.mouseAvoidanceWeight;
     }
   }
 
-  acceleration += avoidanceHeading * settings.weightSeparation;
+  acceleration += avoidanceHeading * settings.separationWeight;
 
   if (flockmatesHeading > 0) {
     avgFlockHeading /= float(flockmatesHeading);
-    acceleration += (avgFlockHeading - boid.velocity) * settings.weightAlignment;
+    acceleration += (avgFlockHeading - boid.velocity) * settings.alignmentWeight;
   }
 
   if (flockmatesCenter > 0) {
     avgFlockCenter /= float(flockmatesCenter);
-    acceleration += (avgFlockCenter - boid.position) * settings.weightCohesion;
+    acceleration += (avgFlockCenter - boid.position) * settings.cohesionWeight;
   }
 
   return acceleration;
@@ -175,7 +180,7 @@ float randi(vec2 co) {
 
 void main() {
   uint index = int(gl_GlobalInvocationID.x);
-  if (index >= boidsIn.length()) {
+  if (index >= settings.numBoids + settings.numPredators) {
     return;
   }
 
@@ -183,22 +188,23 @@ void main() {
   vec2 acceleration = vec2(0.0, 0.0);
 
   // Handle neighbours (separation, alignment, cohesion)
-  if (boid.is_predator == 0) {
+  if (boid.isPredator == 0) {
     acceleration += handleNeighbours(index);
   }
 
   // Avoid edges
-  if (settings.weightEdge > 0) {
+  // TODO: Revisit naming or avoid like separation
+  if (settings.edgeAvoidanceWeight > 0) {
     if (boid.position.x < settings.edgeMarginLeft) {
-      acceleration.x += settings.weightEdge;
+      acceleration.x += settings.edgeAvoidanceWeight;
     } else if (boid.position.x > params.xMax - settings.edgeMarginRight) {
-      acceleration.x -= settings.weightEdge;
+      acceleration.x -= settings.edgeAvoidanceWeight;
     }
 
     if (boid.position.y < settings.edgeMarginTop) {
-      acceleration.y += settings.weightEdge;
+      acceleration.y += settings.edgeAvoidanceWeight;
     } else if (boid.position.y > params.yMax - settings.edgeMarginBottom) {
-      acceleration.y -= settings.weightEdge;
+      acceleration.y -= settings.edgeAvoidanceWeight;
     }
   }
 
@@ -206,7 +212,12 @@ void main() {
   vec2 velocity = boid.velocity + acceleration;
   if (acceleration != vec2(0.0, 0.0)) {
     // Limit speed
-    float speed = clamp(length(velocity), settings.minSpeed, settings.maxSpeed);
+    float speed = 0;
+    if (boid.isPredator == 1) {
+      speed = settings.predatorSpeed;
+    } else {
+      speed = clamp(length(velocity), settings.speedMin, settings.speedMax);
+    }
     velocity = normalize(velocity) * speed;
 
     velocity *= params.deltaTime;
@@ -231,21 +242,23 @@ void main() {
   boidsOut[index].position = pos;
   boidsOut[index].velocity = velocity;
   boidsOut[index].family = boid.family;
-  boidsOut[index].is_predator = boid.is_predator;
+  boidsOut[index].isPredator = boid.isPredator;
 
   // Write to image (R = pos_x, G = pos_y)
-  int col = int(mod(index, params.imageSize));
-  int row = int(index / params.imageSize);
+
+  // Remap position to image coordinates
+  int col = int(mod(index, float(settings.imageSize)));
+  int row = int(index / float(settings.imageSize));
 
   imageStore(outputImage, ivec2(col, row), vec4(pos.x, pos.y, 0.0, 0.0));
 
   vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-  if (boid.is_predator == 1) {
+  if (boid.isPredator == 1) {
     color.r = 1.0;
   } else {
-    // color.r = randi(vec2(index, index));
+    color.r = randi(vec2(0, boid.family));
     color.g = randi(vec2(boid.family, boid.family));
-    // color.b = randi(vec2(boid.family, index));
+    color.b = randi(vec2(boid.family, 0));
   }
   imageStore(colorImage, ivec2(col, row), color);
 }

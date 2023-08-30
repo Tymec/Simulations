@@ -23,3 +23,7 @@ Helper="*res://scripts/utils/Helper.gd"
 
 window/stretch/mode="viewport"
 window/stretch/aspect="expand"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.188235, 0.188235, 0.188235, 1)
