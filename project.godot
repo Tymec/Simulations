@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Simulations"
-run/main_scene="res://scenes/SimulationBoids.tscn"
+run/main_scene="res://scenes/SimulationSlime.tscn"
 config/features=PackedStringArray("4.1", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -23,6 +23,7 @@ Helper="*res://scripts/utils/Helper.gd"
 
 window/stretch/mode="viewport"
 window/stretch/aspect="expand"
+window/vsync/vsync_mode=0
 
 [rendering]
 
