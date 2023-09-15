@@ -153,7 +153,7 @@ func register_uniform_buffer(buffer_name: String, binding: int, size: int = 0, d
 ## Registers a texture uniform.
 func register_texture(
 	texture_name: String, binding: int,
-	width: float, height: float,
+	width: float = 0, height: float = 0,
 	data: PackedByteArray = [],
 	format: int = RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM,
 	usage_bits: int = RenderingDevice.TEXTURE_USAGE_STORAGE_BIT + RenderingDevice.TEXTURE_USAGE_CAN_UPDATE_BIT,

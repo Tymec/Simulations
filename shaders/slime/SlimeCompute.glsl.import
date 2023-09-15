@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dja2jip6s55lf"
+path="res://.godot/imported/SlimeCompute.glsl-001ec86d509cd94873b4473f380bee27.res"
+
+[deps]
+
+source_file="res://shaders/slime/SlimeCompute.glsl"
+dest_files=["res://.godot/imported/SlimeCompute.glsl-001ec86d509cd94873b4473f380bee27.res"]
+
+[params]
+
